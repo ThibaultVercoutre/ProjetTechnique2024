@@ -10,37 +10,11 @@ import matplotlib.pyplot as plt
 import math as m
 
 db = sqlite3.connect('data.db')
-plaice_dir_path = "C:\\Users\\thiba\\Downloads\\96695\\data_image_otolith_ple_mur\\plaice"
-df = pd.read_csv(plaice_dir_path + '\\metadata_plaice_2010-2019.csv', sep=';')
+plaice_dir_path = "F:\Téléchargements\96695\data_image_otolith_ple_mur\plaice"
+df = pd.read_csv('metadata_plaice_2010-2019.csv', sep=';')
 
 def get_echelle(image: np.ndarray):
     return 125
-    # motif = np.uint8(np.array([[[255]*3]*3]*21))
-    # print(motif)
-    # image = image.transpose(1, 2, 0)
-    # print(image.shape, motif.shape)
-    # # Vérifiez si l'image est déjà en niveaux de gris
-    # # _, binary_image = cv2.threshold(image, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    # # _, binary_motif = cv2.threshold(motif, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
-    
-    # result = cv2.matchTemplate(image, motif, cv2.TM_SQDIFF_NORMED)
-    # seuil = 1
-    # locations = np.where(result >= seuil)
-
-    # print(result)
-    # positions_haut_gauche = []
-
-    # for pt in zip(*locations[::-1]):  # Inverser x et y dans locations
-    #     positions_haut_gauche.append(pt)
-
-    # print(len(positions_haut_gauche))
-    #     # Dessiner un rectangle autour de la zone correspondante pour la visualisation
-    #     cv2.rectangle(image, pt, (pt[0] + motif.shape[1], pt[1] + motif.shape[0]), (0,255,255), 2)
-
-    # # Afficher l'image avec les rectangles dessinés
-    # cv2.imshow('Correspondances', image)
-    # cv2.waitKey(0)
-    # cv2.destroyAllWindows()
 
 def get_densite(image):
     return np.mean(image)
@@ -86,8 +60,6 @@ def get_min_diametre(image):
         max_diametre = min(max_diametre, rayon*2)
     return max_diametre
 
-
-# ne pas lancer cette fonction -> BDD déjà pleine
 def remplissage():
     cursor = db.cursor()
     images = df[['Age', 'Reference_PC']]
@@ -240,22 +212,40 @@ def get_ring_curvature(image: np.ndarray, title):
     m1 = ((image.shape[1] - image.shape[1]/part) - image.shape[1]/part) / image.shape[2]
     m2 = (image.shape[1]/part - (image.shape[1] - image.shape[1]/part)) / image.shape[2]
 
-    top = []
-    bottom = []
-    middle_left = []
-    middle_right = []
+    x_points_np = np.array(x_points)
+    y_points_np = np.array(y_points)
 
-    for i in range(len(x_points)):
-        f1 = x_points[i]*m1 + image.shape[1]/part
-        f2 = x_points[i]*m2 + image.shape[1] - image.shape[1]/part
-        if f1 < y_points[i] and f2 < y_points[i]:
-            bottom.append([x_points[i], y_points[i]])
-        elif f1 > y_points[i] and f2 > y_points[i]:
-            top.append([x_points[i], y_points[i]])
-        elif f1 > y_points[i] and f2 < y_points[i]:
-            middle_right.append([x_points[i], y_points[i]])
-        elif f1 < y_points[i] and f2 > y_points[i]:
-            middle_left.append([x_points[i], y_points[i]])
+    f1 = x_points_np * m1 + image.shape[1] / part
+    f2 = x_points_np * m2 + image.shape[1] - image.shape[1] / part
+
+    # Create masks based on conditions
+    bottom_mask = (f1 < y_points_np) & (f2 < y_points_np)
+    top_mask = (f1 > y_points_np) & (f2 > y_points_np)
+    middle_right_mask = (f1 > y_points_np) & (f2 < y_points_np)
+    middle_left_mask = (f1 < y_points_np) & (f2 > y_points_np)
+
+    # Filter elements using masks and create arrays
+    bottom = np.column_stack((x_points_np[bottom_mask], y_points_np[bottom_mask]))
+    top = np.column_stack((x_points_np[top_mask], y_points_np[top_mask]))
+    middle_right = np.column_stack((x_points_np[middle_right_mask], y_points_np[middle_right_mask]))
+    middle_left = np.column_stack((x_points_np[middle_left_mask], y_points_np[middle_left_mask]))
+
+    # top = []
+    # bottom = []
+    # middle_left = []
+    # middle_right = []
+
+    # for i in range(len(x_points)):
+    #     f1 = x_points[i]*m1 + image.shape[1]/part
+    #     f2 = x_points[i]*m2 + image.shape[1] - image.shape[1]/part
+    #     if f1 < y_points[i] and f2 < y_points[i]:
+    #         bottom.append([x_points[i], y_points[i]])
+    #     elif f1 > y_points[i] and f2 > y_points[i]:
+    #         top.append([x_points[i], y_points[i]])
+    #     elif f1 > y_points[i] and f2 < y_points[i]:
+    #         middle_right.append([x_points[i], y_points[i]])
+    #     elif f1 < y_points[i] and f2 > y_points[i]:
+    #         middle_left.append([x_points[i], y_points[i]])
 
     # top, bottom, middle_left, middle_right = categorize_points(x_points, y_points)
 
@@ -336,11 +326,16 @@ def filtrer_ellipses(ellipse, image: np.ndarray):
             (ellipse[0][0] > 0 
              and ellipse[0][1] > 0 
              and ellipse[0][0] < image.shape[2] 
-             and ellipse[0][1] < image.shape[1]) and
-             (ellipse[1][0] / ellipse[1][1] <= 10
-              and ellipse[1][1] / ellipse[1][0] <= 10))
+             and ellipse[0][1] < image.shape[1]
+             and ellipse[1][0] < image.shape[1] and ellipse[1][0] < image.shape[2]
+             and ellipse[1][1] < image.shape[1] and ellipse[1][1] < image.shape[2]) and
+             (ellipse[1][0] / ellipse[1][1] <= 4
+              and ellipse[1][1] / ellipse[1][0] <= 4))
 
 def get_growth(image: np.ndarray, title):
+    diametre = get_diametre(image)
+    echelle = get_echelle(image)
+    # print(m.floor(1/diametre * echelle / 13))
     gray_image = cv2.cvtColor(image.transpose(1, 2, 0), cv2.COLOR_BGR2GRAY)
     mean_value = 1*np.median(gray_image)
     gray_image = centrer_image(image)
@@ -366,15 +361,17 @@ def get_growth(image: np.ndarray, title):
     binary_image = 255 - binary_image
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     
-    closing = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
-    opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel)
-    binary_image = opening
+    # closing = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
+    # opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel)
+    # binary_image = opening
 
-    dilated_image = cv2.dilate(binary_image, kernel, iterations=4)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=8)
+    # m.floor(diametre / echelle /13)
+
+    dilated_image = cv2.dilate(binary_image, kernel, iterations=10)
+    eroded_image = cv2.erode(dilated_image, kernel, iterations=15)
 
     # save eroded image
-    cv2.imwrite('eroded_image.png', eroded_image)
+    # cv2.imwrite('eroded_image.png', eroded_image)
 
     binary_image = eroded_image
 
@@ -392,17 +389,25 @@ def get_growth(image: np.ndarray, title):
     ellipses = [ellipse for ellipse in ellipses if filtrer_ellipses(ellipse, image)]
 
     # trouver l'air max des éllipses
-    max_ellipse = max(ellipses, key=lambda x: x[1][0] * x[1][1])
+    if len(ellipses) == 0:
+        return 0
+    else:
+        max_ellipse = max(ellipses, key=lambda x: x[1][0] * x[1][1])
 
     # enlever toutes les éllipses dont le centre n'est pas contenu dans l'ellipse la plus grande
     ellipses = [ellipse for ellipse in ellipses if max_ellipse[0][0] - max_ellipse[1][0] < ellipse[0][0] < max_ellipse[0][0] + max_ellipse[1][0] and max_ellipse[0][1] - max_ellipse[1][1] < ellipse[0][1] < max_ellipse[0][1] + max_ellipse[1][1]]
 
+    # calculer le centre moyen des ellipses
+    center = (np.mean([ellipse[0][0] for ellipse in ellipses]), np.mean([ellipse[0][1] for ellipse in ellipses]))
+
+    # enlever tout les éllipses dont le centre est trop éloigné du centre moyen
+    ellipses = [ellipse for ellipse in ellipses if np.linalg.norm(np.array(ellipse[0]) - np.array(center)) < 0.3 * max_ellipse[1][0]]
 
     # trier les ellipses par taille
     ellipses = sorted(ellipses, key=lambda x: x[1][0] * x[1][1], reverse=False)
 
-    # for i, ellipse in enumerate(ellipses):
-    #    print(f"Ellipse {i+1} : Center = {ellipse[0]}, Axes = {ellipse[1]}, Angle = {ellipse[2]}")
+    for i, ellipse in enumerate(ellipses):
+       print(f"Ellipse {i+1} : Center = {ellipse[0]}, Axes = {ellipse[1]}, Angle = {ellipse[2]}")
     
     image_with_ellipses = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
 
@@ -411,11 +416,8 @@ def get_growth(image: np.ndarray, title):
     for ellipse in filtered_ellipses:
         cv2.ellipse(image_with_ellipses, ellipse, (0, 255, 0), 2)
 
-
+    # enregistrer l'image avec les ellipses
     cv2.imwrite('image_with_ellipses.png', image_with_ellipses)
-    cv2.imwrite('binary_image.png', binary_image)
-    cv2.imwrite('gray_image_init.png', gray_image_init)
-    cv2.imwrite('eq_image.png', eq_image)
 
     radius_diff = []
 
@@ -427,17 +429,22 @@ def get_growth(image: np.ndarray, title):
     if len(radius_diff) == 0:
         return 0
 
+    min_radius_diff = radius_diff[-1]
+
+    # enlever min_radius_diff de toute les valeurs
+    radius_diff = [x - min_radius_diff for x in radius_diff]
+
     x = np.arange(len(radius_diff))
 
-    slope, intercept = np.polyfit(x, radius_diff, 1)
+    a, b = np.polyfit(x, radius_diff, 1)
 
     # Find x for y = 0
-    x_for_y_0 = -intercept / slope
-    x_for_y_0 = m.floor(x_for_y_0)
+    x_for_y_0 = - b / a
+    x_for_y_0 = m.floor(x_for_y_0 + 1)
 
     # Plot the data and the line
     # plt.plot(x, radius_diff, 'o', label='Data')
-    # plt.plot(x, slope * x + intercept, label='Linear Regression Line')
+    # plt.plot(x, a * x + b, label='Linear Regression Line')
     # plt.xlabel('Ellipse Number')
     # plt.ylabel('Radius Difference')
     # plt.title('Average Radius Difference Between Consecutive Ellipses')
@@ -446,7 +453,9 @@ def get_growth(image: np.ndarray, title):
     # plt.title(titre)
     # plt.show()
 
-    return x_for_y_0
+    # print(- slope / x_for_y_0)
+
+    return abs(x_for_y_0)
 
 def split_image(image: np.ndarray):
     # Charger le modèle YOLO
@@ -579,7 +588,8 @@ def split_image(image: np.ndarray):
 
 def test_surfaces():
     test = ["left_and_right/KS_10_TRIM3_LCN_073", "right/GBD_19_B40_C1_O_0092", "left_and_right/KS_13_TRIM3_XBL_0169", "left_and_right/KS_13_TRIM4_CGFS_0120"]
-    image_path = f"{plaice_dir_path}/{test[1]}.tif"
+    image_n = 1
+    image_path = f"{plaice_dir_path}/{test[image_n]}.tif"
     try:
         image = tifffile.imread(image_path)
     except: # l'image n'existe pas
@@ -589,19 +599,14 @@ def test_surfaces():
     if "left_and_right" in image_path:
         image_left, image_right = split_image(image)
 
-        age1 = get_growth(image_left, test[1])   
-        age2 = get_growth(image_right, test[1])   
+        age1 = get_growth(image_left, test[image_n])
+        age2 = get_growth(image_right, test[image_n])
 
-        if age1 == 0:
-            age = age2
-        elif age2 == 0:
-            age = age1
-        else:
-            age = m.floor((age1 + age2) / 2)
+        age = (age1 + age2) / 2
             
     else:
-        age = get_growth(image, test[2])   
-    
+        age = get_growth(image, test[image_n])
+
     print(age)
     # get_growth(age)
     # get_ring_curvature(image, "AD_18_B76_C1_O_0042.tif")
@@ -619,6 +624,9 @@ def maj():
     cursor = db.cursor()
     images = df[['Age', 'Reference_PC']]    
 
+    X = []
+    Y = []
+
     for i, row in images.iterrows():
         nb_barres = '#' * int(i / (len(images)) * 100) + ' ' * int(100 - i / (len(images)) * 100)
         print(nb_barres, str(i / (len(images)) * 100) + '%', end='\n')
@@ -629,12 +637,12 @@ def maj():
             image = tifffile.imread(image_path)
             exist = True
         except: # l'image n'existe pas
-            pass
+            os.system('cls')  # Efface la console
+            continue
 
         print(row['Reference_PC'])
 
-        if "left_and_right" in image_path and exist:
-            
+        if "left_and_right" in image_path:
             image_left, image_right = split_image(image)
 
             age1 = get_growth(image_left, row['Reference_PC'])
@@ -645,14 +653,31 @@ def maj():
             elif age2 == 0:
                 age = age1
             else:
-                age = m.floor((age1 + age2) / 2)
-            
+                age = (age1 + age2) / 2
+                
         else:
-            age = get_growth(image, row['Reference_PC'])  
-        cursor.execute('UPDATE donnees SET age_estime = ? WHERE filepath = ?', 
-                       (age, row['Reference_PC']))
+            age = get_growth(image, row['Reference_PC'])
+        
+        cursor.execute('SELECT age FROM donnees WHERE filepath = ?', 
+                        (row['Reference_PC'],))
+        
+        result = cursor.fetchone()[0]
+        
+        X.append(result)
+        Y.append(age)
+
+        
+
+        # cursor.execute('UPDATE donnees SET RC_top = ?, RC_bottom = ?, RC_right = ?, RC_left = ? WHERE filepath = ?', 
+        #                 (r_top, r_bottom, r_middle_right, r_middle_left, row['Reference_PC']))
         
         os.system('cls')  # Efface la console
+
+    plt.scatter(X, Y)
+    plt.xlabel('Age')
+    plt.ylabel('Coefficients Y')
+    plt.title('Coeff vs Age')
+    plt.show()
 
     print(len(images_fails))
     db.commit()
