@@ -191,10 +191,11 @@ def meilleurs_données(colonnes: list, test: list):
 
 
 
-def main():
+def liste_para():
     colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'age_estime']
     # suite = meilleurs_données(colonnes, [])
-    suite = ['max_diametre', 'densite', 'diametre', 'RC_top', 'age_estime', 'RC_right', 'surface', 'RC_bottom', 'relativeopacity', 'RC_left']
+    # suite = ['max_diametre', 'densite', 'diametre', 'RC_top', 'age_estime', 'RC_right', 'surface', 'RC_bottom', 'relativeopacity', 'RC_left']
+    suite = ['age_estime', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
     print(suite)
 
     params = []
@@ -235,39 +236,23 @@ def main():
     plt.xlabel('Paramètres')
     plt.xticks(x, suite, rotation='horizontal')
     plt.ylabel('Précision')
-    plt.title('Précision des modèles en fonction de la tolerence')
+    plt.title('Précision des modèles en fonction des paramètres')
     plt.legend()
     plt.show()
 
-    # cnn()
-    # inception()
-    # print("1. Régression logistique")
-    # print("2. Support Vector Machines")
-    # print("3. Discriminant Analysis")
-    # print("4. Random Forests")
-    # print("5. Gradient Boosting Machines")
-    # print("6. CNN")
-    # print("7. Inception")
-    # print("8. ResNet")
-    # x = int(input("Entrez un nombre : "))
-    # if x == 1:
-    #     regression_logistique()
-    # elif x == 2:
-    #     support_vector_machines()
-    # elif x == 3:
-    #     discriminant_analysis()
-    # elif x == 4:
-    #     random_forests()
-    # elif x == 5:
-    #     gradient_boosting_machines()
-    # elif x == 6:
-    #     cnn()
-    # elif x == 7:
-    #     inception()
-    # elif x == 8:
-    #     resnet()
-    # else:
-    #     print("Nombre invalide.")
+
+def main():
+    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'age_estime']
+    X = df_modifie[colonnes]
+    Y = df_modifie['age']
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+    print(f"Précision du modèle Discriminant Analysis : {regression_logistique(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Support Vector Machines : {support_vector_machines(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Discriminant Analysis : {discriminant_analysis(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Random Forests : {random_forests(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Gradient Boosting Machines : {gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test)}")
 
 
-main()
+if __name__ == "__main__":
+    liste_para()
+    # main()
