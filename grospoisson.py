@@ -72,8 +72,8 @@ def random_forests(tolerence, X_train, X_test, Y_train, Y_test):
     # print(f"Précision du modèle Random Forests : {round(accuracy_with_tolerance, 2)}")
     return accuracy_with_tolerance
 
-def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test):
-    model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.1, random_state=42)
+def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, choix_n_estimators):
+    model = GradientBoostingClassifier(n_estimators=choix_n_estimators, learning_rate=0.1, random_state=42)
     model.fit(X_train, Y_train)
     prediction = model.predict(X_test)
     accuracy = accuracy_score(Y_test, prediction)
@@ -81,70 +81,48 @@ def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test):
     # print(f"Précision du modèle Gradient Boosting Machines : {round(accuracy_with_tolerance, 2)}")
     return accuracy_with_tolerance
 
+def test_GBM():
+    suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
+
+    Ygradient = []
+
+    for i in range(100):
+        nb_barres = '\033[91m' + '#' * int(i / (100) * 100) + ' ' * int(100 - i / (100) * 100) + '\033[0m'
+        print(nb_barres, str(i / (100) * 100) + '%', end='\n')
+
+        print("\033[92m" + f"N estimators : {i + 1}" + "\033[0m")
+        X = df_modifie[suite]
+        Y = df_modifie['age']
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, i + 1))
+
+        print("\033[94m" + f"Gradient Boosting Machines : {Ygradient}" + "\033[0m")
+
+        os.system('cls')
+
+    models = ['Régression logistique', 'Support Vector Machines', 'Discriminant Analysis', 'Random Forests', 'Gradient Boosting Machines']
+    
+    x = np.arange(1, 100)
+    plt.plot(x, Ygradient, 'o-', label=models[4])
+    plt.xlabel('Paramètres')
+    plt.xticks(x, suite, rotation='horizontal')
+    plt.ylabel('Précision')
+    plt.title('Précision des modèles en fonction des paramètres')
+    plt.legend()
+    plt.show()
+
 # utiliser tensorflow pour les modèles suivants
 def cnn():
-    # X_reshaped = X.values.reshape((X.shape[0], X.shape[1], 1))
-    # X_train_reshaped = X_train.values.reshape((X_train.shape[0], X_train.shape[1]))
-    # X_test_reshaped = X_test.values.reshape((X_test.shape[0], X_test.shape[1]))
-    # model = Sequential()
-    # model.add(Conv1D(filters=64, kernel_size=2, activation='relu', input_shape=(X_train_reshaped.shape[1], 1)))
-    # model.add(MaxPooling1D(pool_size=2))
-    # model.add(Flatten())
-    # model.add(Dense(50, activation='relu'))
-    # model.add(Dense(1))
-    # model.compile(optimizer='adam', loss='mean_squared_error')
-    # model.fit(X_train_reshaped, Y_train, epochs=10, batch_size=32)
-    # prediction = model.predict(X_test_reshaped)
-    # # accuracy = accuracy_score(Y_test, prediction)
-    # r2 = r2_score(Y_test, prediction)
-    # print(f"Précision du modèle CNN : {r2:.2%}")
     pass
 
 
 def inception():
-    # base_model = InceptionV3(include_top=False, weights='imagenet', input_shape=(height, width, 3))
-    
-    # # Ajouter vos propres couches supérieures
-    # model = Sequential()
-    # model.add(base_model)
-    # model.add(Flatten())
-    # model.add(Dense(1024, activation='relu'))
-    # model.add(Dense(1))
-    
-    # model.compile(optimizer='adam', loss='mean_squared_error')
-    
-    # # Entraîner le modèle
-    # model.fit(X_train_reshaped, Y_train, epochs=10, batch_size=32)
-    
-    # # Faire des prédictions sur l'ensemble de test
-    # prediction = model.predict(X_test_reshaped)
-    
-    # # Calculer R2 score
-    # r2 = r2_score(Y_test, prediction)
-    
-    # print(f"R2 Score du modèle Inception : {r2:.2%}")
     pass
 
 
 def resnet():
     pass
-    # X_train_reshaped = X_train.values.reshape((X_train.shape[0], X_train.shape[1]))
-    # X_test_reshaped = X_test.values.reshape((X_test.shape[0], X_test.shape[1]))
-    # # Créer le modèle ResNet50 pré-entraîné sans les couches supérieures
-    # base_model = ResNet50(include_top=False, weights='imagenet', input_shape=(img_height, img_width, 3))
-    
-    # # Ajouter vos propres couches supérieures
-    # model = Sequential()
-    # model.add(base_model)
-    # model.add(Flatten())
-    # model.add(Dense(1024, activation='relu'))
-    # model.add(Dense(1))
-    # model.compile(optimizer='adam', loss='mean_squared_error')
-    # model.fit(X_train_reshaped, Y_train, epochs=10, batch_size=32)
-    # prediction = model.predict(X_test_reshaped)
-    # # accuracy = accuracy_score(Y_test, prediction)
-    # r2 = r2_score(Y_test, prediction)
-    # print(f"Précision du modèle Resnet : {r2:.2%}")
 
 # fonction principale
 
@@ -222,16 +200,16 @@ def meilleure_combinaison():
         Y = df_modifie['age']
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-        print("\033[94m" + f"Régression logistique\033[0m")
-        Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
-        print("\033[94m" + f"Support Vector Machines\033[0m")
-        Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
-        print("\033[94m" + f"Discriminant Analysis\033[0m")
-        Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
-        print("\033[94m" + f"Random Forests\033[0m")
-        Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
-        # print("\033[94m" + f"Gradient Boosting Machines\033[0m")
-        # Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test))
+        # print("\033[94m" + f"Régression logistique\033[0m")
+        # Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
+        # print("\033[94m" + f"Support Vector Machines\033[0m")
+        # Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
+        # print("\033[94m" + f"Discriminant Analysis\033[0m")
+        # Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
+        # print("\033[94m" + f"Random Forests\033[0m")
+        # Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Gradient Boosting Machines\033[0m")
+        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test))
 
         # print("\033[94m" + f"Régression logistique : {Ylogistique}" + "\033[0m")
         # print("\033[94m" + f"Support Vector Machines : {Ysvm}" + "\033[0m")
@@ -241,17 +219,17 @@ def meilleure_combinaison():
         
         os.system('cls')
 
-    max_logistique_index = Ylogistique.index(max(Ylogistique))
-    max_svm_index = Ysvm.index(max(Ysvm))
-    max_discriminant_index = Ydiscriminant.index(max(Ydiscriminant))
-    max_random_index = Yrandom.index(max(Yrandom))
-    # max_gradient_index = Ygradient.index(max(Ygradient))
+    # max_logistique_index = Ylogistique.index(max(Ylogistique))
+    # max_svm_index = Ysvm.index(max(Ysvm))
+    # max_discriminant_index = Ydiscriminant.index(max(Ydiscriminant))
+    # max_random_index = Yrandom.index(max(Yrandom))
+    max_gradient_index = Ygradient.index(max(Ygradient))
 
-    print(f"Meilleure combinaison pour Régression logistique : {all_combinations[max_logistique_index]} d'un taux de {round(Ylogistique[max_logistique_index], 2)}")
-    print(f"Meilleure combinaison pour Support Vector Machines : {all_combinations[max_svm_index]} d'un taux de {round(Ysvm[max_svm_index], 2)}")
-    print(f"Meilleure combinaison pour Discriminant Analysis : {all_combinations[max_discriminant_index]} d'un taux de {round(Ydiscriminant[max_discriminant_index], 2)}")
-    print(f"Meilleure combinaison pour Random Forests : {all_combinations[max_random_index]} d'un taux de {round(Yrandom[max_random_index], 2)}")
-    # print(f"Meilleure combinaison pour Gradient Boosting Machines : {all_combinations[max_gradient_index]} d'un taux de {round(Ygradient[max_gradient_index], 2)}")
+    # print(f"Meilleure combinaison pour Régression logistique : {all_combinations[max_logistique_index]} d'un taux de {round(Ylogistique[max_logistique_index], 2)}")
+    # print(f"Meilleure combinaison pour Support Vector Machines : {all_combinations[max_svm_index]} d'un taux de {round(Ysvm[max_svm_index], 2)}")
+    # print(f"Meilleure combinaison pour Discriminant Analysis : {all_combinations[max_discriminant_index]} d'un taux de {round(Ydiscriminant[max_discriminant_index], 2)}")
+    # print(f"Meilleure combinaison pour Random Forests : {all_combinations[max_random_index]} d'un taux de {round(Yrandom[max_random_index], 2)}")
+    print(f"Meilleure combinaison pour Gradient Boosting Machines : {all_combinations[max_gradient_index]} d'un taux de {round(Ygradient[max_gradient_index], 2)}")
 
 
 def liste_para():
@@ -319,4 +297,5 @@ def main():
 if __name__ == "__main__":
     # liste_para()
     # main()
-    meilleure_combinaison()
+    # meilleure_combinaison()
+    test_GBM()
