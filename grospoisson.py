@@ -1,3 +1,4 @@
+import itertools
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
@@ -36,7 +37,7 @@ df_modifie = get_dataframe()
 # fonctions de modèles
 
 def regression_logistique(tolerence, X_train, X_test, Y_train, Y_test):
-    model = LogisticRegression(max_iter=1000)
+    model = LogisticRegression(max_iter=10000)
     model.fit(X_train, Y_train)
     prediction = model.predict(X_test)
     accuracy = accuracy_score(Y_test, prediction)
@@ -190,12 +191,74 @@ def meilleurs_données(colonnes: list, test: list):
     # print(f"Meilleure colonne globale : {best_column}")
 
 
+def meilleure_combinaison():
+    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
+    
+    # trouver toutes les combinaisons possibles de colonnes
+    all_combinations = []
+    for i in range(7, len(colonnes) + 1):
+        combinations_i = list(itertools.combinations(colonnes, i))
+        all_combinations.extend(combinations_i)
+
+    # Afficher toutes les combinaisons
+    for combination in all_combinations:
+        print(combination)
+
+    print("\033[93m" + f"Nombre de combinaisons possibles : {len(all_combinations)}" + "\033[0m")
+    
+    Ylogistique = []
+    Ysvm = []
+    Ydiscriminant = []
+    Yrandom = []
+    Ygradient = []
+
+    for combination in all_combinations:
+        
+        nb_barres = '\033[91m' + '#' * int(all_combinations.index(combination) / (len(all_combinations)) * 100) + ' ' * int(100 - all_combinations.index(combination) / (len(all_combinations)) * 100) + '\033[0m'
+        print(nb_barres, str(all_combinations.index(combination) / (len(all_combinations)) * 100) + '%', end='\n')
+
+        print("\033[92m" + f"Combinaison : {combination}" + "\033[0m")
+        X = df_modifie[list(combination)]
+        Y = df_modifie['age']
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+        print("\033[94m" + f"Régression logistique\033[0m")
+        Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Support Vector Machines\033[0m")
+        Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Discriminant Analysis\033[0m")
+        Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Random Forests\033[0m")
+        Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
+        # print("\033[94m" + f"Gradient Boosting Machines\033[0m")
+        # Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test))
+
+        # print("\033[94m" + f"Régression logistique : {Ylogistique}" + "\033[0m")
+        # print("\033[94m" + f"Support Vector Machines : {Ysvm}" + "\033[0m")
+        # print("\033[94m" + f"Discriminant Analysis : {Ydiscriminant}" + "\033[0m")
+        # print("\033[94m" + f"Random Forests : {Yrandom}" + "\033[0m")
+        # print("\033[94m" + f"Gradient Boosting Machines : {Ygradient}" + "\033[0m")
+        
+        os.system('cls')
+
+    max_logistique_index = Ylogistique.index(max(Ylogistique))
+    max_svm_index = Ysvm.index(max(Ysvm))
+    max_discriminant_index = Ydiscriminant.index(max(Ydiscriminant))
+    max_random_index = Yrandom.index(max(Yrandom))
+    # max_gradient_index = Ygradient.index(max(Ygradient))
+
+    print(f"Meilleure combinaison pour Régression logistique : {all_combinations[max_logistique_index]} d'un taux de {round(Ylogistique[max_logistique_index], 2)}")
+    print(f"Meilleure combinaison pour Support Vector Machines : {all_combinations[max_svm_index]} d'un taux de {round(Ysvm[max_svm_index], 2)}")
+    print(f"Meilleure combinaison pour Discriminant Analysis : {all_combinations[max_discriminant_index]} d'un taux de {round(Ydiscriminant[max_discriminant_index], 2)}")
+    print(f"Meilleure combinaison pour Random Forests : {all_combinations[max_random_index]} d'un taux de {round(Yrandom[max_random_index], 2)}")
+    # print(f"Meilleure combinaison pour Gradient Boosting Machines : {all_combinations[max_gradient_index]} d'un taux de {round(Ygradient[max_gradient_index], 2)}")
+
 
 def liste_para():
-    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'age_estime']
+    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
     # suite = meilleurs_données(colonnes, [])
-    # suite = ['max_diametre', 'densite', 'diametre', 'RC_top', 'age_estime', 'RC_right', 'surface', 'RC_bottom', 'relativeopacity', 'RC_left']
-    suite = ['age_estime', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
+    # suite = ['max_diametre', 'densite', 'diametre', 'RC_top', 'nombre_raies', 'RC_right', 'surface', 'RC_bottom', 'relativeopacity', 'RC_left']
+    suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
     print(suite)
 
     params = []
@@ -242,7 +305,7 @@ def liste_para():
 
 
 def main():
-    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'age_estime']
+    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
     X = df_modifie[colonnes]
     Y = df_modifie['age']
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
@@ -254,5 +317,6 @@ def main():
 
 
 if __name__ == "__main__":
-    liste_para()
+    # liste_para()
     # main()
+    meilleure_combinaison()

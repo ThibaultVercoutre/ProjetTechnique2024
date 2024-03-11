@@ -293,31 +293,29 @@ def get_ring_curvature(image: np.ndarray, title):
     # print(f"Le rayon de courbure moyen Milieu Gauche est: {r_middle_left}")
     # print(f"Le rayon de courbure moyen Milieu Droit est: {r_middle_right}")
 
-    if(top.shape[0] == 0 or bottom.shape[0] == 0 or middle_left.shape[0] == 0 or middle_right.shape[0] == 0):
-        fig, ax = plt.subplots()
-        ax.axis('equal')
+    fig, ax = plt.subplots()
+    ax.axis('equal')
 
-        b = image.shape[1]/part
-        ax.plot([0, image.shape[2]], [b, m1*image.shape[2] + b], 'm--', label='m1')
-        b = image.shape[1] - image.shape[1]/part
-        ax.plot([0, image.shape[2]], [b, m2*image.shape[2] + b], 'c--', label='m2')
+    b = image.shape[1]/part
+    ax.plot([0, image.shape[2]], [b, m1*image.shape[2] + b], 'm--', label='m1')
+    b = image.shape[1] - image.shape[1]/part
+    ax.plot([0, image.shape[2]], [b, m2*image.shape[2] + b], 'c--', label='m2')
 
-        plot_circle(ax, (cx_top, cy_top), r_top, 'r', '-')
-        plot_circle(ax, (cx_bottom, cy_bottom), r_bottom, 'b', '-')
-        plot_circle(ax, (cx_middle_left, cy_middle_left), r_middle_left, 'g', '-')
-        plot_circle(ax, (cx_middle_right, cy_middle_right), r_middle_right, 'y', '-')
+    plot_circle(ax, (cx_top, cy_top), r_top, 'r', '-')
+    plot_circle(ax, (cx_bottom, cy_bottom), r_bottom, 'b', '-')
+    plot_circle(ax, (cx_middle_left, cy_middle_left), r_middle_left, 'g', '-')
+    plot_circle(ax, (cx_middle_right, cy_middle_right), r_middle_right, 'y', '-')
 
         # Tracer les points de contour et les lignes de division
-        ax.plot(top[:, 0], top[:, 1], 'r*', label='Top')
-        ax.plot(bottom[:, 0], bottom[:, 1], 'b*', label='Bottom')
-        ax.plot(middle_left[:, 0], middle_left[:, 1], 'g*', label='Middle Left')
-        ax.plot(middle_right[:, 0], middle_right[:, 1], 'y*', label='Middle Right')
+    ax.plot(top[:, 0], top[:, 1], 'r*', label='Top')
+    ax.plot(bottom[:, 0], bottom[:, 1], 'b*', label='Bottom')
+    ax.plot(middle_left[:, 0], middle_left[:, 1], 'g*', label='Middle Left')
+    ax.plot(middle_right[:, 0], middle_right[:, 1], 'y*', label='Middle Right')
 
-        plt.legend()
-        plt.title(title)
-        plt.show()
+    plt.legend()
+    plt.title(title)
+    plt.show()
 
-        return 0, 0, 0, 0
     return r_top, r_bottom, r_middle_left, r_middle_right
 
 def filtrer_ellipses(ellipse, image: np.ndarray):
@@ -359,8 +357,8 @@ def get_growth(image: np.ndarray, title, type):
     binary_image = 255 - binary_image
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
 
-    dilated_image = cv2.dilate(binary_image, kernel, iterations=5)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=7)
+    dilated_image = cv2.dilate(binary_image, kernel, iterations=3)
+    eroded_image = cv2.erode(dilated_image, kernel, iterations=5)
     binary_image = eroded_image
 
     binary_image = cv2.medianBlur(binary_image, 3)
@@ -416,12 +414,6 @@ def get_growth(image: np.ndarray, title, type):
     diff_diagonale1 = np.diff(diagonale1)/255
     diff_diagonale2 = np.diff(diagonale2)/255
 
-    # afficher diff_ligne et diff_colonne avec plt
-    # plt.plot(diff_diagonale1, 'r')
-    # plt.plot(diff_diagonale2, 'b')
-    # plt.title(title)
-    # plt.show()
-
     ligne_0_1 = np.sum(diff_ligne)
     colonne_0_1 = np.sum(diff_colonne)
     diagonale1_0_1 = np.sum(diff_diagonale1)
@@ -431,15 +423,21 @@ def get_growth(image: np.ndarray, title, type):
     print('colonne_0_1', colonne_0_1)
     print('diagonale1_0_1', diagonale1_0_1)
     print('diagonale2_0_1', diagonale2_0_1)
-    age = (ligne_0_1 + colonne_0_1)/4
+    age = (ligne_0_1 + colonne_0_1 + diagonale2_0_1)/6
     print('age', age)
+
+    # afficher diff_ligne et diff_colonne avec plt
+    # plt.plot(diff_diagonale1, 'r')
+    # plt.plot(diff_diagonale2, 'b')
+    # plt.title(title)
+    # plt.show()
 
     #afficher le centre moyen avec plt
     # plt.imshow(binary_image, cmap='gray')
     # plt.plot(center[0], center[1], 'ro')
 
-    # afficher ligne, colonne et diagonales
-    # Afficher la ligne en bleu
+    # # afficher ligne, colonne et diagonales
+    # # Afficher la ligne en bleu
     # plt.plot([0, binary_image.shape[1]], [center[1], center[1]], color='blue')
 
     # # Afficher la colonne en bleu
@@ -453,7 +451,7 @@ def get_growth(image: np.ndarray, title, type):
 
     # plt.title(title)
     # plt.show()
-    return age - 1
+    return m.floor(age - 0.5)
 
 def get_growth_ellipses(image: np.ndarray, title, type):
     diametre = get_diametre(image)
@@ -741,7 +739,7 @@ def split_image(image: np.ndarray):
 
 def test_surfaces():
     test = ["left_and_right/KS_10_TRIM3_LCN_073", "right/GBD_19_B40_C1_O_0092", "left_and_right/KS_13_TRIM3_XBL_0169", "left_and_right/KS_13_TRIM4_CGFS_0120"]
-    image_n = 1
+    image_n = 3
     image_path = f"{plaice_dir_path}/{test[image_n]}.tif"
     try:
         image = tifffile.imread(image_path)
@@ -752,15 +750,25 @@ def test_surfaces():
     if "left_and_right" in image_path:
         image_left, image_right = split_image(image)
 
-        age1 = get_growth(image_left, test[image_n])
-        age2 = get_growth(image_right, test[image_n])
+        # r_top1, r_bottom1, r_middle_left1, r_middle_right1 = get_ring_curvature(image_left, test[image_n])
+        # r_top2, r_bottom2, r_middle_left2, r_middle_right2 = get_ring_curvature(image_right, test[image_n])
+
+        # r_top = (r_top1 + r_top2) / 2
+        # r_bottom = (r_bottom1 + r_bottom2) / 2
+        # r_middle_left = (r_middle_left1 + r_middle_left2) / 2
+        # r_middle_right = (r_middle_right1 + r_middle_right2) / 2
+
+        age1 = get_growth(image_left, test[image_n], 'left')
+        age2 = get_growth(image_right, test[image_n], 'right')
 
         age = (age1 + age2) / 2
             
     else:
-        age = get_growth(image, test[image_n])
+        # r_top, r_bottom, r_middle_left, r_middle_right = get_ring_curvature(image, test[image_n])
+        age = get_growth(image, test[image_n], '')
 
-    print(age)
+    # print(r_top, r_bottom, r_middle_left, r_middle_right)
+
     # get_growth(age)
     # get_ring_curvature(image, "AD_18_B76_C1_O_0042.tif")
     # print(get_echelle(image))
@@ -798,13 +806,13 @@ def maj():
         if "left_and_right" in image_path:
             image_left, image_right = split_image(image)
 
-            r_top1, r_bottom1, r_middle_left1, r_middle_right1 = get_ring_curvature(image_left, row['Reference_PC'])
-            r_top2, r_bottom2, r_middle_left2, r_middle_right2 = get_ring_curvature(image_right, row['Reference_PC'])
+            # r_top1, r_bottom1, r_middle_left1, r_middle_right1 = get_ring_curvature(image_left, row['Reference_PC'])
+            # r_top2, r_bottom2, r_middle_left2, r_middle_right2 = get_ring_curvature(image_right, row['Reference_PC'])
 
-            r_top = (r_top1 + r_top2) / 2
-            r_bottom = (r_bottom1 + r_bottom2) / 2
-            r_middle_left = (r_middle_left1 + r_middle_left2) / 2
-            r_middle_right = (r_middle_right1 + r_middle_right2) / 2
+            # r_top = (r_top1 + r_top2) / 2
+            # r_bottom = (r_bottom1 + r_bottom2) / 2
+            # r_middle_left = (r_middle_left1 + r_middle_left2) / 2
+            # r_middle_right = (r_middle_right1 + r_middle_right2) / 2
 
             age1 = get_growth(image_left, row['Reference_PC'], 'left')
             age2 = get_growth(image_right, row['Reference_PC'], 'right')
@@ -820,7 +828,7 @@ def maj():
             # os.system('cls')  # Efface la console
             # continue
             age = get_growth(image, row['Reference_PC'], '')
-            r_top, r_bottom, r_middle_left, r_middle_right = get_ring_curvature(image, row['Reference_PC'])
+            # r_top, r_bottom, r_middle_left, r_middle_right = get_ring_curvature(image, row['Reference_PC'])
         
         cursor.execute('SELECT age FROM donnees WHERE filepath = ?', 
                         (row['Reference_PC'],))
@@ -830,11 +838,11 @@ def maj():
         X.append(result)
         Y.append(age)
 
-        # cursor.execute('UPDATE donnees SET age_estime = ? WHERE filepath = ?', 
-        #                 (age, row['Reference_PC']))
+        cursor.execute('UPDATE donnees SET nombre_raies = ? WHERE filepath = ?', 
+                        (age, row['Reference_PC']))
         
-        cursor.execute('UPDATE donnees SET RC_top = ?, RC_bottom = ?, RC_right = ?, RC_left = ? WHERE filepath = ?', 
-                        (r_top, r_bottom, r_middle_right, r_middle_left, row['Reference_PC']))
+        # cursor.execute('UPDATE donnees SET RC_top = ?, RC_bottom = ?, RC_right = ?, RC_left = ? WHERE filepath = ?', 
+        #                 (r_top, r_bottom, r_middle_right, r_middle_left, row['Reference_PC']))
 
         os.system('cls')  # Efface la console
 
