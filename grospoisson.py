@@ -8,6 +8,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, r2_score
 import matplotlib.pyplot as plt
 import numpy as np
+import time
 
 # import tensorflow as tf
 # from tensorflow.keras.models import Sequential
@@ -72,8 +73,8 @@ def random_forests(tolerence, X_train, X_test, Y_train, Y_test):
     # print(f"Précision du modèle Random Forests : {round(accuracy_with_tolerance, 2)}")
     return accuracy_with_tolerance
 
-def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, choix_n_estimators):
-    model = GradientBoostingClassifier(n_estimators=choix_n_estimators, learning_rate=0.1, random_state=42)
+def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, choix_n_estimators, choix_learning_rate):
+    model = GradientBoostingClassifier(n_estimators=choix_n_estimators, learning_rate=choix_learning_rate, random_state=42)
     model.fit(X_train, Y_train)
     prediction = model.predict(X_test)
     accuracy = accuracy_score(Y_test, prediction)
@@ -81,36 +82,179 @@ def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, choi
     # print(f"Précision du modèle Gradient Boosting Machines : {round(accuracy_with_tolerance, 2)}")
     return accuracy_with_tolerance
 
-def test_GBM():
+def afficher_test_GBM(data):
+
+    cursor = db.cursor()
+
+    query = f'SELECT x, y FROM {data}'
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    x = [row[0] for row in rows]
+    y = [row[1] for row in rows]
+
+    plt.plot(x, y, 'o-', label=['Gradient Boosting Machines'])
+    # for i, txt in enumerate(t):
+    #     plt.annotate(txt, (x[i], y[i]))
+    plt.xlabel(data)
+    # plt.xticks(x, suite, rotation='horizontal')
+    plt.ylabel('Précision')
+    plt.title('Précision des modèles en fonction de ' + data)
+    plt.legend()
+    plt.show()
+
+    cursor.close()
+
+def afficher_test_GBM_3D():
+    cursor = db.cursor()
+
+    query = f'SELECT * FROM GBM_variations'
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    x = [row[0] for row in rows]
+    y = [row[1] for row in rows]
+    z = [row[2] for row in rows]
+
+    x = np.array(x)
+    y = np.array(y)
+    z = np.array(z)
+
+    nb_x_unique = len(np.unique(x))
+    nb_y_unique = len(np.unique(y))
+
+    print(f"Nombre de tests pour le learning rate : {nb_x_unique}")
+    print(f"Nombre de tests pour le n_estimators : {nb_y_unique}")
+
+    max_z = z.argmax()
+    print(f"Learning Rate : {x[max_z]} N Enumerates : {y[max_z]} Score : {z[max_z]}")
+
+    # Ygradient_array = z.reshape(nb_y_unique, nb_x_unique)
+
+    X, Y = np.meshgrid(np.unique(x), np.unique(y))
+
+    # Plot the surface
+    fig = plt.figure()
+    ax = fig.add_subplot(111, projection='3d')
+    # ax.plot_surface(X, Y, Ygradient_array)
+    ax.scatter(x, y, z, c='r', marker='.')
+
+    # dessiner le point maximum
+    ax.scatter(x[max_z], y[max_z], z[max_z], color='b')
+
+    # Set labels
+    ax.set_xlabel('Learning Rate Test Number')
+    ax.set_ylabel('N Enumerates Test Number')
+    ax.set_zlabel('Gradient Boosting Machines Score')
+
+    # Show the plot
+    plt.show()
+
+    cursor.close()
+
+
+def test_GBM_learning_rate():
     suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
 
     Ygradient = []
 
-    for i in range(100):
-        nb_barres = '\033[91m' + '#' * int(i / (100) * 100) + ' ' * int(100 - i / (100) * 100) + '\033[0m'
-        print(nb_barres, str(i / (100) * 100) + '%', end='\n')
+    nb_tests_learning_rate = 40
+    pas_learning_rate = 1
+
+    cursor = db.cursor()
+
+    for i in range(0, nb_tests_learning_rate, pas_learning_rate):
+        nb_tests_n_estimators = 30
+        pas_n_estimators = 1
+
+        YgradientBeta = []
+
+        for j in range(0, nb_tests_n_estimators, pas_n_estimators):
+
+            nb_barres = '\033[91m' + '#' * int(i / (nb_tests_learning_rate) * 100) + ' ' * int(100 - i / (nb_tests_learning_rate) * 100) + '\033[0m'
+            print(nb_barres, str(i / (nb_tests_learning_rate) * 100) + '%', end='\n')
+            
+            print("\033[92m" + f"Learning rate : {(i + pas_learning_rate)/100}" + "\033[0m")
+            print("\033[92m" + f"N estimators : {(j + 1)}" + "\033[0m")
+
+            cursor.execute('SELECT * FROM GBM_variations WHERE learning_rate = ? and n_estimators = ?', 
+                            ((i + pas_learning_rate)/100, j + 1))
+            
+            row = cursor.fetchone()
+
+            if row is None:
+                X = df_modifie[suite]
+                Y = df_modifie['age']
+                X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
+
+                result = gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, (j + 1), (i + pas_learning_rate)/100)
+                
+                cursor.execute('INSERT INTO GBM_variations (learning_rate, n_estimators, y) VALUES (?, ?, ?)', 
+                                ((i + pas_learning_rate)/100, j+1, result))
+            
+            # else:
+            #     cursor.execute('UPDATE GBM_variations SET y = ? WHERE learning_rate = ? and n_estimators = ?', 
+            #                     (result, (i + pas_learning_rate)/100, j+1))
+
+
+            # print("\033[94m" + f"Gradient Boosting Machines : {Ygradient}" + "\033[0m")
+
+            os.system('cls')
+        
+        # Ygradient.append(YgradientBeta)
+
+    db.commit()
+    cursor.close()
+
+    afficher_test_GBM_3D()
+
+
+def test_GBM_n_enumerate():
+    suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
+
+    Ygradient = []
+    Tgradient = []
+
+    nb_tests = 100
+
+    cursor = db.cursor()
+
+    for i in range(nb_tests):
+        start_time = time.time()
+
+        nb_barres = '\033[91m' + '#' * int(i / (nb_tests) * 100) + ' ' * int(100 - i / (nb_tests) * 100) + '\033[0m'
+        print(nb_barres, str(i / (nb_tests) * 100) + '%', end='\n')
 
         print("\033[92m" + f"N estimators : {i + 1}" + "\033[0m")
         X = df_modifie[suite]
         Y = df_modifie['age']
-        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+        X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.1, random_state=42)
 
         Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, i + 1))
+        Tgradient.append(round(time.time() - start_time, 2))
+
+        cursor.execute('SELECT x FROM GBM_n_estimators_variations WHERE x = ?', 
+                        (i + 1,))
+        
+        row = cursor.fetchone()
+
+        if row is None:
+            cursor.execute('INSERT INTO GBM_n_estimators_variations (x, y, t) VALUES (?, ?, ?)', 
+                            (i + 1, Ygradient[i], Tgradient[i]))
+        else:
+            cursor.execute('UPDATE GBM_n_estimators_variations SET y = ?, t = ? WHERE x = ?', 
+                            (Ygradient[i], Tgradient[i], i + 1))
+
 
         print("\033[94m" + f"Gradient Boosting Machines : {Ygradient}" + "\033[0m")
 
         os.system('cls')
 
-    models = ['Régression logistique', 'Support Vector Machines', 'Discriminant Analysis', 'Random Forests', 'Gradient Boosting Machines']
-    
-    x = np.arange(1, 100)
-    plt.plot(x, Ygradient, 'o-', label=models[4])
-    plt.xlabel('Paramètres')
-    plt.xticks(x, suite, rotation='horizontal')
-    plt.ylabel('Précision')
-    plt.title('Précision des modèles en fonction des paramètres')
-    plt.legend()
-    plt.show()
+    db.commit()
+    cursor.close()
+
+    afficher_test_GBM("GBM_n_estimators_variations")
+
 
 # utiliser tensorflow pour les modèles suivants
 def cnn():
@@ -281,21 +425,53 @@ def liste_para():
     plt.legend()
     plt.show()
 
+def best_n_estimators():
+    cursor = db.cursor()
+
+    query = f'SELECT x, y FROM GBM_n_estimators_variations'
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    x = [row[0] for row in rows]
+    y = [row[1] for row in rows]
+    
+    max_x_n_estimators = int(x[y.index(max(y))])
+
+    query = f'SELECT x, y FROM GBM_learning_rate_variations'
+    cursor.execute(query)
+    rows = cursor.fetchall()
+
+    x = [row[0] for row in rows]
+    y = [row[1] for row in rows]
+
+    max_x_learning_rate = x[y.index(max(y))]
+
+    cursor.close()
+
+    return max_x_n_estimators, max_x_learning_rate
+
+
 
 def main():
     colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
     X = df_modifie[colonnes]
     Y = df_modifie['age']
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-    print(f"Précision du modèle Discriminant Analysis : {regression_logistique(0, X_train, X_test, Y_train, Y_test)}")
-    print(f"Précision du modèle Support Vector Machines : {support_vector_machines(0, X_train, X_test, Y_train, Y_test)}")
-    print(f"Précision du modèle Discriminant Analysis : {discriminant_analysis(0, X_train, X_test, Y_train, Y_test)}")
-    print(f"Précision du modèle Random Forests : {random_forests(0, X_train, X_test, Y_train, Y_test)}")
-    print(f"Précision du modèle Gradient Boosting Machines : {gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test)}")
+
+    max_x_n_estimators, max_x_learning_rate = best_n_estimators()
+    print(max_x_n_estimators, max_x_learning_rate)
+
+    # print(f"Précision du modèle Regression Logistique : {regression_logistique(0, X_train, X_test, Y_train, Y_test)}")
+    # print(f"Précision du modèle Support Vector Machines : {support_vector_machines(0, X_train, X_test, Y_train, Y_test)}")
+    # print(f"Précision du modèle Discriminant Analysis : {discriminant_analysis(0, X_train, X_test, Y_train, Y_test)}")
+    # print(f"Précision du modèle Random Forests : {random_forests(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Gradient Boosting Machines : {gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 100, 0.2)}")
 
 
 if __name__ == "__main__":
     # liste_para()
     # main()
     # meilleure_combinaison()
-    test_GBM()
+    test_GBM_learning_rate()
+    # afficher_test_GBM_3D()
+    # afficher_test_GBM("GBM_n_estimators_variations")

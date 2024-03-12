@@ -737,7 +737,7 @@ def split_image(image: np.ndarray):
     # cv2.imwrite('object2.jpg', object2)
     return image1, image2
 
-def test_surfaces():
+def test_image():
     test = ["left_and_right/KS_10_TRIM3_LCN_073", "right/GBD_19_B40_C1_O_0092", "left_and_right/KS_13_TRIM3_XBL_0169", "left_and_right/KS_13_TRIM4_CGFS_0120"]
     image_n = 3
     image_path = f"{plaice_dir_path}/{test[image_n]}.tif"
@@ -857,4 +857,4 @@ def maj():
 
 if __name__ == '__main__':
     maj()
-    # test_surfaces()
+    # test_image()
