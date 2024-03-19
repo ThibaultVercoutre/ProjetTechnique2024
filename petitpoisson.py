@@ -85,7 +85,7 @@ def remplissage():
 
 def get_donnees():
     cursor = db.cursor()
-    cursor.execute('SELECT * FROM donnees')
+    cursor.execute('SELECT *, age > 7 as seuil_age FROM donnees')
     data = cursor.fetchall()
     index_names = [description[0] for description in cursor.description]
     cursor.close()
@@ -139,7 +139,10 @@ def plot_circle(ax, center, radius, color, linestyle):
     ax.add_artist(circle)
 
 def centrer_image(image: np.ndarray):
-    gray_image = cv2.cvtColor(image.transpose(1, 2, 0), cv2.COLOR_BGR2GRAY)
+    if image.shape[0] == 3:
+        image = image.transpose(1, 2, 0)
+        
+    gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray_image = cv2.medianBlur(gray_image, 5)
     gray_image = cv2.medianBlur(gray_image, 5)
     gray_image = cv2.medianBlur(gray_image, 5)
@@ -326,14 +329,19 @@ def filtrer_ellipses(ellipse, image: np.ndarray):
              and ellipse[0][0] < image.shape[2] 
              and ellipse[0][1] < image.shape[1]
              and ellipse[1][0] < image.shape[1] and ellipse[1][0] < image.shape[2]
-             and ellipse[1][1] < image.shape[1] and ellipse[1][1] < image.shape[2]) and
-             (ellipse[1][0] / ellipse[1][1] <= 4
-              and ellipse[1][1] / ellipse[1][0] <= 4))
+             and ellipse[1][1] < image.shape[1] and ellipse[1][1] < image.shape[2])
+            #  (ellipse[1][0] / ellipse[1][1] <= 4
+            #   and ellipse[1][1] / ellipse[1][0] <= 4)
+            )
 
 def get_growth(image: np.ndarray, title, type):
-    gray_image = cv2.cvtColor(image.transpose(1, 2, 0), cv2.COLOR_BGR2GRAY)
-    mean_value = 1*np.median(gray_image)
+    if image.shape[2] == 3:
+        image = image.transpose(2, 0, 1)
+
+    # gray_image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+    
     gray_image = centrer_image(image)
+    mean_value = 1*np.median(gray_image)
 
     gray_image_init = gray_image
 
@@ -358,7 +366,7 @@ def get_growth(image: np.ndarray, title, type):
     kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
 
     dilated_image = cv2.dilate(binary_image, kernel, iterations=3)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=5)
+    eroded_image = cv2.erode(dilated_image, kernel, iterations=6)
     binary_image = eroded_image
 
     binary_image = cv2.medianBlur(binary_image, 3)
@@ -375,6 +383,7 @@ def get_growth(image: np.ndarray, title, type):
     ellipses = [ellipse for ellipse in ellipses if filtrer_ellipses(ellipse, image)]
 
     # trouver l'air max des éllipses
+    
     if len(ellipses) == 0:
         return 0
     max_ellipse = max(ellipses, key=lambda x: x[1][0] * x[1][1])
@@ -385,46 +394,54 @@ def get_growth(image: np.ndarray, title, type):
     # calculer le centre moyen des ellipses
     center = (np.mean([ellipse[0][0] for ellipse in ellipses]), np.mean([ellipse[0][1] for ellipse in ellipses]))
 
-    # séparer le ligne et la colonne de binary_image passant par le centre moyen
-    ligne = binary_image[int(center[1]), :]
-    colonne = binary_image[:, int(center[0])]
+    equations_droites = []
+    equations_pixels = []
+    # Parcourir différentes valeurs de la pente
+    pente = -10.0
+    while pente <= 10.0:
+        # Gérer le cas d'une pente verticale (infinie)
+        if pente != 0:
+            # Calculer l'ordonnée à l'origine
+            c = center[1] - pente * center[0]
+            # Former l'équation de la droite
+            equation_droite = f"y = {pente}x + {c}"
+            equations_droites.append([pente, c])
+
+            pixels_droite = []
+            for x in range(binary_image.shape[1]):
+                y = int(pente * x + c)
+                if 0 <= y < binary_image.shape[0]:
+                    pixels_droite.append((x, y))
+            
+            equations_pixels.append((equation_droite, np.array(pixels_droite)))
+        
+        pente += 0.1
+
+    # Initialiser une liste pour stocker les résultats pour chaque droite
+    resultats = []
+
+    # Traitement pour chaque droite dans equations_pixels
+    for equation, pixels in equations_pixels:
+        x_values, y_values = zip(*pixels)
+        
+        # Calculer les valeurs de ligne et de colonne pour chaque droite
+        droite = binary_image[y_values, x_values]
+        
+        # Calculer les différences et les sommes pour chaque droite
+        diff_droite= np.diff(droite) / 255
+        
+        droite_0_1 = np.sum(diff_droite)
+        
+        # Ajouter les résultats à la liste
+        resultats.append((equation, droite_0_1))
+
+    # Calcul du vecteur final en combinant les résultats pour toutes les droites
+    vecteur_final = np.array([resultat[1:] for resultat in resultats])
+    moyenne_vecteur_final = np.mean(vecteur_final, axis=0)
 
     # séparer les diagonales de binary_image passant par le centre moyen
 
-    # Calculer les indices des pixels sur la première diagonale
-    indices_diagonale1 = np.arange(binary_image.shape[1]) + int(center[1] - center[0])
-    indices_diagonale1 = indices_diagonale1[(indices_diagonale1 >= 0) & (indices_diagonale1 < binary_image.shape[0]) & (indices_diagonale1 < binary_image.shape[1])]
-    # Transposer les indices pour les aligner avec les dimensions de l'image
-    indices_diagonale1 = np.column_stack((indices_diagonale1, np.arange(len(indices_diagonale1))))
-    # Extraire les valeurs des pixels sur la première diagonale
-    diagonale1 = binary_image[indices_diagonale1[:, 1], indices_diagonale1[:, 0]]
-
-    # Calculer les indices des pixels sur la deuxième diagonale
-    indices_diagonale2 = np.arange(binary_image.shape[1]) - int(center[1] - center[0])
-    indices_diagonale2 = indices_diagonale2[(indices_diagonale2 >= 0) & (indices_diagonale2 < binary_image.shape[0]) & (indices_diagonale2 < binary_image.shape[1])]
-    # Transposer les indices pour les aligner avec les dimensions de l'image
-    indices_diagonale2 = np.column_stack((indices_diagonale2, np.arange(len(indices_diagonale2))))
-    # Extraire les valeurs des pixels sur la deuxième diagonale
-    diagonale2 = binary_image[indices_diagonale2[:, 1], indices_diagonale2[:, 0]]
-
-
     # trouver le nombre de passage de 0 à 1 et de 1 à 0 pour chaque ligne, colonne et diagonale
-    diff_ligne = np.diff(ligne)/255
-    diff_colonne = np.diff(colonne)/255
-    diff_diagonale1 = np.diff(diagonale1)/255
-    diff_diagonale2 = np.diff(diagonale2)/255
-
-    ligne_0_1 = np.sum(diff_ligne)
-    colonne_0_1 = np.sum(diff_colonne)
-    diagonale1_0_1 = np.sum(diff_diagonale1)
-    diagonale2_0_1 = np.sum(diff_diagonale2)
-
-    print('ligne_0_1', ligne_0_1)
-    print('colonne_0_1', colonne_0_1)
-    print('diagonale1_0_1', diagonale1_0_1)
-    print('diagonale2_0_1', diagonale2_0_1)
-    age = (ligne_0_1 + colonne_0_1 + diagonale2_0_1)/6
-    print('age', age)
 
     # afficher diff_ligne et diff_colonne avec plt
     # plt.plot(diff_diagonale1, 'r')
@@ -435,6 +452,25 @@ def get_growth(image: np.ndarray, title, type):
     #afficher le centre moyen avec plt
     # plt.imshow(binary_image, cmap='gray')
     # plt.plot(center[0], center[1], 'ro')
+
+    # x = np.arange(binary_image.shape[1])
+
+    # for equation in equations_droites:
+    # # Définir les coordonnées du texte sur l'image (à ajuster selon vos besoins)
+    #     pente= equation[0]
+    #     c = equation[1]
+    #     c = round(float(c))
+        
+    #     if pente == 0:
+    #         y = np.full_like(x, center[1])
+    #     else:
+    #         y = pente * x + c
+    #         y = np.clip(y, 0, binary_image.shape[0] - 1)  # Limiter les valeurs de y à la taille de l'image
+
+    #     # Tracer la droite
+    #     plt.plot(x, y, color='red')
+
+    # plt.show()
 
     # # afficher ligne, colonne et diagonales
     # # Afficher la ligne en bleu
@@ -451,7 +487,9 @@ def get_growth(image: np.ndarray, title, type):
 
     # plt.title(title)
     # plt.show()
-    return m.floor(age - 0.5)
+    age_estimation =  m.floor(moyenne_vecteur_final/2 - 0.5)
+    # print('age estimation : ', age_estimation)
+    return age_estimation
 
 def get_growth_ellipses(image: np.ndarray, title, type):
     diametre = get_diametre(image)
@@ -477,10 +515,10 @@ def get_growth_ellipses(image: np.ndarray, title, type):
     # Remplacer les valeurs dans l'image égalisée là où le masque est vrai
     eq_image[mask] = eq_values
 
-    binary_image = cv2.adaptiveThreshold(eq_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 41, 2)
+    binary_image = cv2.adaptiveThreshold(eq_image, 255, cv2.ADAPTIVE_THRESH_GAUSSIAN_C, cv2.THRESH_BINARY, 41, 1)
     
     binary_image = 255 - binary_image
-    kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
+    # kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (2, 2))
     
     # closing = cv2.morphologyEx(binary_image, cv2.MORPH_CLOSE, kernel)
     # opening = cv2.morphologyEx(closing, cv2.MORPH_OPEN, kernel)
@@ -488,15 +526,15 @@ def get_growth_ellipses(image: np.ndarray, title, type):
 
     # m.floor(diametre / echelle /13)
 
-    dilated_image = cv2.dilate(binary_image, kernel, iterations=5)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=7)
-    dilated_image = cv2.dilate(binary_image, kernel, iterations=5)
-    eroded_image = cv2.erode(dilated_image, kernel, iterations=7)
+    # dilated_image = cv2.dilate(binary_image, kernel, iterations=5)
+    # eroded_image = cv2.erode(dilated_image, kernel, iterations=7)
+    # dilated_image = cv2.dilate(binary_image, kernel, iterations=5)
+    # eroded_image = cv2.erode(dilated_image, kernel, iterations=7)
 
     # save eroded image
     # cv2.imwrite('eroded_image.png', eroded_image)
 
-    binary_image = eroded_image
+    # binary_image = eroded_image
 
     binary_image = cv2.medianBlur(binary_image, 3)
     
@@ -531,7 +569,7 @@ def get_growth_ellipses(image: np.ndarray, title, type):
 
     # for i, ellipse in enumerate(ellipses):
     #    print(f"Ellipse {i+1} : Center = {ellipse[0]}, Axes = {ellipse[1]}, Angle = {ellipse[2]}")
-    
+
     image_with_ellipses = cv2.cvtColor(binary_image, cv2.COLOR_GRAY2BGR)
 
     filtered_ellipses = [ellipse for ellipse in ellipses if ellipse[1][0] > 0 and ellipse[1][1] > 0]
@@ -577,24 +615,25 @@ def get_growth_ellipses(image: np.ndarray, title, type):
     x_for_y_0 = m.floor(x_for_y_0 + 1)
  
     # Plot the data and the line
-    # plt.plot(x, radius_diff, 'o', label='Data')
-    # plt.plot(x, a * x + b, label='Linear Regression Line')
-    # plt.xlabel('Ellipse Number')
-    # plt.ylabel('Radius Difference')
-    # plt.title('Average Radius Difference Between Consecutive Ellipses')
-    # plt.legend()
-    # titre = title, " : ", str(x_for_y_0)
-    # plt.title(titre)
-    # plt.show()
+    plt.plot(x, radius_diff, 'o', label='Data')
+    plt.plot(x, a * x + b, label='Linear Regression Line')
+    plt.xlabel('Ellipse Number')
+    plt.ylabel('Radius Difference')
+    plt.title('Average Radius Difference Between Consecutive Ellipses')
+    plt.legend()
+    titre = title, " : ", str(x_for_y_0)
+    plt.title(titre)
+    plt.show()
 
-    # print(- slope / x_for_y_0)
+    print(- b / x_for_y_0)
 
     return abs(x_for_y_0)
 
 def split_image(image: np.ndarray):
     # Charger le modèle YOLO
     # gray = centrer_image(image)
-    gray = cv2.cvtColor(image.transpose(1, 2, 0), cv2.COLOR_BGR2GRAY)
+    if image.shape[0] == 3:
+        gray = cv2.cvtColor(image.transpose(1, 2, 0), cv2.COLOR_BGR2GRAY)
     _, binary_image = cv2.threshold(gray, 0, 255, cv2.THRESH_BINARY + cv2.THRESH_OTSU)
     contours, _ = cv2.findContours(binary_image, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
 
@@ -691,8 +730,6 @@ def split_image(image: np.ndarray):
     # Verifier cette partie va avec la partie du dessus. Prendre en compte le décalage
     # Utiliser l'indexation avancée pour copier les valeurs pour tous les canaux à la fois
 
-    print(image1.shape, image2.shape, image.shape)
-
     image1[:, y1b, x1b] = image[:, y1, x1]
     image2[:, y2b, x2b] = image[:, y2, x2]
 
@@ -739,34 +776,40 @@ def split_image(image: np.ndarray):
 
 def test_image():
     test = ["left_and_right/KS_10_TRIM3_LCN_073", "right/GBD_19_B40_C1_O_0092", "left_and_right/KS_13_TRIM3_XBL_0169", "left_and_right/KS_13_TRIM4_CGFS_0120"]
-    image_n = 3
+    image_n = 0
     image_path = f"{plaice_dir_path}/{test[image_n]}.tif"
+    exist = False
     try:
         image = tifffile.imread(image_path)
+        exist = True
     except: # l'image n'existe pas
         print("Image not found")
-        return "Image not found"
+        pass
     
-    if "left_and_right" in image_path:
-        image_left, image_right = split_image(image)
+    print(test[image_n])
 
-        # r_top1, r_bottom1, r_middle_left1, r_middle_right1 = get_ring_curvature(image_left, test[image_n])
-        # r_top2, r_bottom2, r_middle_left2, r_middle_right2 = get_ring_curvature(image_right, test[image_n])
+    if exist:
+        if "left_and_right" in image_path:
+            image_left, image_right = split_image(image)
 
-        # r_top = (r_top1 + r_top2) / 2
-        # r_bottom = (r_bottom1 + r_bottom2) / 2
-        # r_middle_left = (r_middle_left1 + r_middle_left2) / 2
-        # r_middle_right = (r_middle_right1 + r_middle_right2) / 2
+            # r_top1, r_bottom1, r_middle_left1, r_middle_right1 = get_ring_curvature(image_left, test[image_n])
+            # r_top2, r_bottom2, r_middle_left2, r_middle_right2 = get_ring_curvature(image_right, test[image_n])
 
-        age1 = get_growth(image_left, test[image_n], 'left')
-        age2 = get_growth(image_right, test[image_n], 'right')
+            # r_top = (r_top1 + r_top2) / 2
+            # r_bottom = (r_bottom1 + r_bottom2) / 2
+            # r_middle_left = (r_middle_left1 + r_middle_left2) / 2
+            # r_middle_right = (r_middle_right1 + r_middle_right2) / 2
 
-        age = (age1 + age2) / 2
-            
-    else:
-        # r_top, r_bottom, r_middle_left, r_middle_right = get_ring_curvature(image, test[image_n])
-        age = get_growth(image, test[image_n], '')
+            age1 = get_growth_ellipses(image_left, test[image_n], 'left')
+            age2 = get_growth_ellipses(image_right, test[image_n], 'right')
 
+            age = (age1 + age2) / 2
+                
+        else:
+            # r_top, r_bottom, r_middle_left, r_middle_right = get_ring_curvature(image, test[image_n])
+            age = get_growth_ellipses(image, test[image_n], '')
+
+        print('age estimation final : ', age)
     # print(r_top, r_bottom, r_middle_left, r_middle_right)
 
     # get_growth(age)
@@ -799,52 +842,64 @@ def maj():
             exist = True
         except: # l'image n'existe pas
             os.system('cls')  # Efface la console
-            continue
+            # print("Image not found")
 
         print(row['Reference_PC'])
 
-        if "left_and_right" in image_path:
-            image_left, image_right = split_image(image)
+        if exist:
+            print(image.shape)
+            if "left_and_right" in image_path:
+                image_left, image_right = split_image(image)
 
-            # r_top1, r_bottom1, r_middle_left1, r_middle_right1 = get_ring_curvature(image_left, row['Reference_PC'])
-            # r_top2, r_bottom2, r_middle_left2, r_middle_right2 = get_ring_curvature(image_right, row['Reference_PC'])
+                # r_top1, r_bottom1, r_middle_left1, r_middle_right1 = get_ring_curvature(image_left, row['Reference_PC'])
+                # r_top2, r_bottom2, r_middle_left2, r_middle_right2 = get_ring_curvature(image_right, row['Reference_PC'])
 
-            # r_top = (r_top1 + r_top2) / 2
-            # r_bottom = (r_bottom1 + r_bottom2) / 2
-            # r_middle_left = (r_middle_left1 + r_middle_left2) / 2
-            # r_middle_right = (r_middle_right1 + r_middle_right2) / 2
+                # r_top = (r_top1 + r_top2) / 2
+                # r_bottom = (r_bottom1 + r_bottom2) / 2
+                # r_middle_left = (r_middle_left1 + r_middle_left2) / 2
+                # r_middle_right = (r_middle_right1 + r_middle_right2) / 2
 
-            age1 = get_growth(image_left, row['Reference_PC'], 'left')
-            age2 = get_growth(image_right, row['Reference_PC'], 'right')
+                age1 = get_growth(image_left, row['Reference_PC'], 'left')
+                age2 = get_growth(image_right, row['Reference_PC'], 'right')
 
-            if age1 == 0:
-                age = age2
-            elif age2 == 0:
-                age = age1
+                if age1 == 0:
+                    age = age2
+                elif age2 == 0:
+                    age = age1
+                else:
+                    age = (age1 + age2) / 2
+                    
             else:
-                age = (age1 + age2) / 2
-                
-        else:
-            # os.system('cls')  # Efface la console
-            # continue
-            age = get_growth(image, row['Reference_PC'], '')
-            # r_top, r_bottom, r_middle_left, r_middle_right = get_ring_curvature(image, row['Reference_PC'])
-        
-        cursor.execute('SELECT age FROM donnees WHERE filepath = ?', 
-                        (row['Reference_PC'],))
-        
-        result = cursor.fetchone()[0]
-        
-        X.append(result)
-        Y.append(age)
+                # os.system('cls')  # Efface la console
+                # continue
+                age = get_growth(image, row['Reference_PC'], '')
+                # r_top, r_bottom, r_middle_left, r_middle_right = get_ring_curvature(image, row['Reference_PC'])
+            
+            # print('age estimation final : ', age)
 
-        cursor.execute('UPDATE donnees SET nombre_raies = ? WHERE filepath = ?', 
-                        (age, row['Reference_PC']))
-        
-        # cursor.execute('UPDATE donnees SET RC_top = ?, RC_bottom = ?, RC_right = ?, RC_left = ? WHERE filepath = ?', 
-        #                 (r_top, r_bottom, r_middle_right, r_middle_left, row['Reference_PC']))
+            cursor.execute('SELECT age FROM donnees WHERE filepath = ?', 
+                            (row['Reference_PC'],))
+            
+            print(age, row['Reference_PC'])
 
-        os.system('cls')  # Efface la console
+            result = cursor.fetchall()
+            
+            if len(result) != 0:
+                X.append(result[0])
+                Y.append(age)
+                cursor.execute('UPDATE donnees SET nombre_raies = ? WHERE filepath = ?', 
+                                (age, row['Reference_PC']))
+            
+            # plt.scatter(X, Y)
+            # plt.xlabel('Age')
+            # plt.ylabel('Coefficients Y')
+            # plt.title('Coeff vs Age')
+            # plt.show()
+
+            # cursor.execute('UPDATE donnees SET RC_top = ?, RC_bottom = ?, RC_right = ?, RC_left = ? WHERE filepath = ?', 
+            #                 (r_top, r_bottom, r_middle_right, r_middle_left, row['Reference_PC']))
+
+            os.system('cls')  # Efface la console
 
     plt.scatter(X, Y)
     plt.xlabel('Age')
@@ -856,5 +911,5 @@ def maj():
     db.commit()
 
 if __name__ == '__main__':
-    maj()
-    # test_image()
+    # maj()
+    test_image()

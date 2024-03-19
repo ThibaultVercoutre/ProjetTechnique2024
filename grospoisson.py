@@ -164,7 +164,7 @@ def test_GBM_learning_rate():
     cursor = db.cursor()
 
     for i in range(0, nb_tests_learning_rate, pas_learning_rate):
-        nb_tests_n_estimators = 30
+        nb_tests_n_estimators = 40
         pas_n_estimators = 1
 
         YgradientBeta = []
@@ -394,14 +394,15 @@ def liste_para():
         params.append(param)
         print("\033[92m" + f"Paramètres : {params}" + "\033[0m")
         X = df_modifie[params]
-        Y = df_modifie['age']
+        # Y = df_modifie['age']
+        Y = df_modifie['seuil_age']
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
         Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
         Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
         Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
         Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
-        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test))
+        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 23, 0.32))
 
         print("\033[94m" + f"Régression logistique : {Ylogistique}" + "\033[0m")
         print("\033[94m" + f"Support Vector Machines : {Ysvm}" + "\033[0m")
@@ -456,22 +457,24 @@ def main():
     colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
     X = df_modifie[colonnes]
     Y = df_modifie['age']
+    # Y = df_modifie['seuil_age']
+
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-    max_x_n_estimators, max_x_learning_rate = best_n_estimators()
-    print(max_x_n_estimators, max_x_learning_rate)
+    # max_x_n_estimators, max_x_learning_rate = best_n_estimators()
+    # print(max_x_n_estimators, max_x_learning_rate)
 
-    # print(f"Précision du modèle Regression Logistique : {regression_logistique(0, X_train, X_test, Y_train, Y_test)}")
-    # print(f"Précision du modèle Support Vector Machines : {support_vector_machines(0, X_train, X_test, Y_train, Y_test)}")
-    # print(f"Précision du modèle Discriminant Analysis : {discriminant_analysis(0, X_train, X_test, Y_train, Y_test)}")
-    # print(f"Précision du modèle Random Forests : {random_forests(0, X_train, X_test, Y_train, Y_test)}")
-    print(f"Précision du modèle Gradient Boosting Machines : {gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 100, 0.2)}")
+    print(f"Précision du modèle Regression Logistique : {regression_logistique(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Support Vector Machines : {support_vector_machines(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Discriminant Analysis : {discriminant_analysis(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Random Forests : {random_forests(0, X_train, X_test, Y_train, Y_test)}")
+    print(f"Précision du modèle Gradient Boosting Machines : {gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 23, 0.32)}")
 
 
 if __name__ == "__main__":
     # liste_para()
-    # main()
+    main()
     # meilleure_combinaison()
-    test_GBM_learning_rate()
+    # test_GBM_learning_rate()
     # afficher_test_GBM_3D()
     # afficher_test_GBM("GBM_n_estimators_variations")
