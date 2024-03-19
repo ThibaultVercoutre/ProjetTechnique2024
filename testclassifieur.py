@@ -15,7 +15,7 @@ import time
 # from tensorflow.keras.layers import Dense, Conv1D, Flatten, MaxPooling1D
 # from tensorflow.keras.applications import InceptionV3, ResNet50
 
-from petitpoisson import *
+from recupparams import *
 
 # fonction de récupération des données
 
