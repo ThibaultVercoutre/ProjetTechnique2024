@@ -10,7 +10,7 @@ import matplotlib.pyplot as plt
 import math as m
 
 db = sqlite3.connect('data.db')
-plaice_dir_path = "C:\\Users\\thiba\\Downloads\\96695\\data_image_otolith_ple_mur\\plaice"
+plaice_dir_path = "F:\Téléchargements\96695\data_image_otolith_ple_mur\plaice"
 df = pd.read_csv(plaice_dir_path + '\\metadata_plaice_2010-2019.csv', sep=';')
 
 def get_echelle(name):

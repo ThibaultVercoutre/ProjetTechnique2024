@@ -1,12 +1,12 @@
 import itertools
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import RFE
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeClassifierCV, LassoLarsIC
 from sklearn.svm import SVC
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.metrics import accuracy_score, r2_score
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score, confusion_matrix, classification_report
 import matplotlib.pyplot as plt
 import numpy as np
 import time
@@ -31,6 +31,30 @@ def get_dataframe():
 
 df_modifie = get_dataframe()
 
+def split_train_test_by_age(X, Y, test_size=0.2, random_state=42):
+    # Créer un DataFrame avec X et Y
+    data = pd.concat([X, Y], axis=1)
+
+    # Séparer les données par âge
+    train_data = pd.DataFrame()
+    test_data = pd.DataFrame()
+
+    for age in data['age'].unique():
+        age_data: pd.DataFrame = data[data['age'] == age]
+        X_age = age_data.drop(['age'], axis=1)
+        Y_age = age_data['age']
+        X_train_age, X_test_age, Y_train_age, Y_test_age = train_test_split(X_age, Y_age, test_size=test_size, random_state=random_state)
+        train_data = pd.concat([train_data, pd.concat([X_train_age, Y_train_age], axis=1)])
+        test_data = pd.concat([test_data, pd.concat([X_test_age, Y_test_age], axis=1)])
+
+    # Séparer les données en X_train, X_test, Y_train, Y_test
+    X_train = train_data.drop(['age'], axis=1)
+    Y_train = train_data['age']
+    X_test = test_data.drop(['age'], axis=1)
+    Y_test = test_data['age']
+
+    return X_train, X_test, Y_train, Y_test
+
 # X = df_modifie[['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left']]
 # Y = df_modifie['age']
 
@@ -41,60 +65,72 @@ df_modifie = get_dataframe()
 def regression_logistique(tolerence, X_train, X_test, Y_train, Y_test):
     model = LogisticRegression(max_iter=10000)
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
-    # print(f"Précision du modèle Regressions Logistique : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    prediction = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    metrics = {
+        'Accuracy': accuracy_score(Y_test, prediction),
+        'Precision': precision_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Recall': recall_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'F1_score': f1_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Overfitting': accuracy_score(Y_train, prediction_train)
+    }
+    return metrics
 
 def support_vector_machines(tolerence, X_train, X_test, Y_train, Y_test):
     model = SVC()
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
-
-    # print(f"Précision du modèle Support Vector Machines : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    prediction = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    metrics = {
+        'Accuracy': accuracy_score(Y_test, prediction),
+        'Precision': precision_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Recall': recall_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'F1_score': f1_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Overfitting': accuracy_score(Y_train, prediction_train)
+    }
+    return metrics
 
 def discriminant_analysis(tolerence, X_train, X_test, Y_train, Y_test):
     model = LinearDiscriminantAnalysis()
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
-
-    # print(f"Précision du modèle Discriminant Analysis : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    prediction = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    metrics = {
+        'Accuracy': accuracy_score(Y_test, prediction),
+        'Precision': precision_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Recall': recall_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'F1_score': f1_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Overfitting': accuracy_score(Y_train, prediction_train)
+    }
+    return metrics
 
 def random_forests(tolerence, X_train, X_test, Y_train, Y_test):
     model = RandomForestClassifier()
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
+    prediction = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    metrics = {
+        'Accuracy': accuracy_score(Y_test, prediction),
+        'Precision': precision_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Recall': recall_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'F1_score': f1_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Overfitting': accuracy_score(Y_train, prediction_train)
+    }
+    return metrics
 
-    # print(f"Précision du modèle Random Forests : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
-
-def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, choix_n_estimators, choix_learning_rate):
-    model = GradientBoostingClassifier(n_estimators=choix_n_estimators, learning_rate=choix_learning_rate, random_state=42)
+def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test):
+    model = GradientBoostingClassifier() # n_estimators=choix_n_estimators, learning_rate=choix_learning_rate, random_state=42
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
-    # print(f"Précision du modèle Gradient Boosting Machines : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    prediction = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    metrics = {
+        'Accuracy': accuracy_score(Y_test, prediction),
+        'Precision': precision_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Recall': recall_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'F1_score': f1_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
+        'Overfitting': accuracy_score(Y_train, prediction_train)
+    }
+    return metrics
 
 def afficher_test_GBM(data):
 
@@ -284,7 +320,7 @@ def resnet():
 
 # fonction principale
 
-def meilleurs_données(colonnes: list, test: list):
+def meilleures_donnees(colonnes: list, test: list):
     print("\033[92m" + f"Test : {test}" + "\033[0m")
     print("\033[94m" + f"Colonnes à test : {colonnes}" + "\033[0m")
     
@@ -298,6 +334,8 @@ def meilleurs_données(colonnes: list, test: list):
 
     resultats_colonnes = {}
 
+    model = 'Gradient Boosting Machines'
+
     for colonne in colonnes:
         colonnes_test = test.copy()
         colonnes_test.append(colonne)
@@ -305,23 +343,24 @@ def meilleurs_données(colonnes: list, test: list):
         X = df_modifie[colonnes_test]
         Y = df_modifie['age']
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-        resultats['Régression logistique'].append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
-        resultats['Support Vector Machines'].append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
-        resultats['Discriminant Analysis'].append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
-        resultats['Random Forests'].append(random_forests(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Régression logistique'].append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Support Vector Machines'].append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Discriminant Analysis'].append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Random Forests'].append(random_forests(0, X_train, X_test, Y_train, Y_test))
         resultats['Gradient Boosting Machines'].append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test))
 
-    for key, value in resultats.items():
-        # message = f"Meilleur colonne pour {key} : {colonnes[value.index(max(value))]}"
-        resultats_colonnes[colonnes[value.index(max(value))]] = resultats_colonnes.get(colonnes[value.index(max(value))], 0) + 1
-        # print(message)
+    # trouver la meilleure colonne pour la régression logistique
+    resultats_colonnes[model] = [resultats[model][i]['Accuracy'] for i in range(len(resultats[model]))]
 
-    best_column = max(resultats_colonnes, key=resultats_colonnes.get)
+    best_column = colonnes[resultats_colonnes[model].index(max(resultats_colonnes[model]))]
+
+    print(best_column)
+
     # print(f"Meilleure colonne pour {best_column} : {colonnes[resultats[best_column].index(max(resultats[best_column]))]}")
     test.append(best_column)
     colonnes.remove(best_column)
     if len(colonnes) != 0:
-        meilleurs_données(colonnes, test)
+        meilleures_donnees(colonnes, test)
     
     return test
     # print(f"Meilleure colonne globale : {best_column}")
@@ -390,12 +429,11 @@ def meilleure_combinaison():
     print(f"Meilleure combinaison pour Gradient Boosting Machines : {all_combinations[max_gradient_index]} d'un taux de {round(Ygradient[max_gradient_index], 2)}")
 
 
-def liste_para():
-    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
-    # suite = meilleurs_données(colonnes, [])
+def liste_para(suite):
+    # suite = meilleures_donnees(colonnes, [])
     # suite = ['max_diametre', 'densite', 'diametre', 'RC_top', 'nombre_raies', 'RC_right', 'surface', 'RC_bottom', 'relativeopacity', 'RC_left']
-    suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
-    print(suite)
+    # suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
+    suite = ['RC_left', 'densite', 'opacity', 'elongation', 'min_diametre', 'surface', 'max_diametre', 'growth', 'diametre', 'relative_opacity', 'nombre_raies', 'RC_right', 'RC_bottom', 'RC_top']
 
     params = []
     Ylogistique = []
@@ -408,31 +446,31 @@ def liste_para():
         params.append(param)
         print("\033[92m" + f"Paramètres : {params}" + "\033[0m")
         X = df_modifie[params]
-        # Y = df_modifie['age']
-        Y = df_modifie['seuil_age']
+        Y = df_modifie['age']
+        # Y = df_modifie['seuil_age']
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-        Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
-        Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
-        Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
-        Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
-        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 23, 0.32))
+        Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test)['Accuracy'])
+        # Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test)['Accuracy'])
+        # Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test)['Accuracy'])
+        # Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test)['Accuracy'])
+        # Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test)['Accuracy'])
 
         print("\033[94m" + f"Régression logistique : {Ylogistique}" + "\033[0m")
-        print("\033[94m" + f"Support Vector Machines : {Ysvm}" + "\033[0m")
-        print("\033[94m" + f"Discriminant Analysis : {Ydiscriminant}" + "\033[0m")
-        print("\033[94m" + f"Random Forests : {Yrandom}" + "\033[0m")
-        print("\033[94m" + f"Gradient Boosting Machines : {Ygradient}" + "\033[0m")
+        # print("\033[94m" + f"Support Vector Machines : {Ysvm}" + "\033[0m")
+        # print("\033[94m" + f"Discriminant Analysis : {Ydiscriminant}" + "\033[0m")
+        # print("\033[94m" + f"Random Forests : {Yrandom}" + "\033[0m")
+        # print("\033[94m" + f"Gradient Boosting Machines : {Ygradient}" + "\033[0m")
 
     models = ['Régression logistique', 'Support Vector Machines', 'Discriminant Analysis', 'Random Forests', 'Gradient Boosting Machines']
     
     x = np.arange(0, len(suite))
 
     plt.plot(x, Ylogistique, 'o-', label=models[0])
-    plt.plot(x, Ysvm, 'o-', label=models[1])
-    plt.plot(x, Ydiscriminant, 'o-', label=models[2])
-    plt.plot(x, Yrandom, 'o-', label=models[3])
-    plt.plot(x, Ygradient, 'o-', label=models[4])
+    # plt.plot(x, Ysvm, 'o-', label=models[1])
+    # plt.plot(x, Ydiscriminant, 'o-', label=models[2])
+    # plt.plot(x, Yrandom, 'o-', label=models[3])
+    # plt.plot(x, Ygradient, 'o-', label=models[4])
     plt.xlabel('Paramètres')
     plt.xticks(x, suite, rotation='horizontal')
     plt.ylabel('Précision')
@@ -464,33 +502,6 @@ def best_n_estimators():
     cursor.close()
 
     return max_x_n_estimators, max_x_learning_rate
-
-
-
-def main():
-    colonnes = ['growth', 'densite', 'relative_opacity', 'opacity', 'surface', 'diametre', 'min_diametre', 'max_diametre', 'elongation', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
-    X = df_modifie[colonnes]
-    Y = df_modifie['age']
-    # Y = df_modifie['seuil_age']
-
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
-
-    # max_x_n_estimators, max_x_learning_rate = best_n_estimators()
-    # print(max_x_n_estimators, max_x_learning_rate)
-
-    X = df_modifie[meilleur_sous_ensemble(LogisticRegression(max_iter=1000), X, Y, n_features=len(colonnes))]
-    Y = df_modifie['age']
-    print(f"Précision du modèle Regression Logistique : {regression_logistique(0, X_train, X_test, Y_train, Y_test)}")
-    print(f"Précision du modèle Support Vector Machines : {support_vector_machines(0, X_train, X_test, Y_train, Y_test)}")
-    X = df_modifie[meilleur_sous_ensemble(LinearDiscriminantAnalysis(), X, Y, n_features=len(colonnes))]
-    Y = df_modifie['age']
-    print(f"Précision du modèle Discriminant Analysis : {discriminant_analysis(0, X_train, X_test, Y_train, Y_test)}")
-    X = df_modifie[meilleur_sous_ensemble(RandomForestClassifier(), X, Y, n_features=len(colonnes))]
-    Y = df_modifie['age']
-    print(f"Précision du modèle Random Forests : {random_forests(0, X_train, X_test, Y_train, Y_test)}")
-    X = df_modifie[meilleur_sous_ensemble(GradientBoostingClassifier(), X, Y, n_features=len(colonnes))]
-    Y = df_modifie['age']
-    print(f"Précision du modèle Gradient Boosting Machines : {gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 100, 0.32)}")
 
 def boxplot(col, ax, i):
     # Obtenir les âges uniques à partir des données
@@ -564,12 +575,152 @@ def meilleur_sous_ensemble_tout_classifieur(colonnes):
     # print("Les meilleures caractéristiques GBM sélectionnées :")
     # print(caracteristiques_selectionnees_GBM)
 
+def APRF1(colonnes: list):
+    columns_to_normalize = df_modifie.columns.difference(['age', 'filepath'])
+
+    # Créer un objet StandardScaler
+    scaler = StandardScaler()
+
+    # Normaliser les données
+    df_modifie[columns_to_normalize] = scaler.fit_transform(df_modifie[columns_to_normalize])
+
+    X = df_modifie[colonnes]
+    Y = df_modifie['age']
+    # Y = df_modifie['seuil_age']
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+    # X_train, X_test, Y_train, Y_test = split_train_test_by_age(X, Y, test_size=0.2, random_state=42)
+
+    # max_x_n_estimators, max_x_learning_rate = best_n_estimators()
+    # print(max_x_n_estimators, max_x_learning_rate)
+
+    classifiers = {
+        'Regression Logistique': regression_logistique(0, X_train, X_test, Y_train, Y_test),
+        'Support Vector Machines': support_vector_machines(0, X_train, X_test, Y_train, Y_test),
+        'Discriminant Analysis': discriminant_analysis(0, X_train, X_test, Y_train, Y_test),
+        'Random Forests': random_forests(0, X_train, X_test, Y_train, Y_test),
+        'Gradient Boosting Machines': gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test)
+    }
+
+    print(classifiers)
+
+    # Affichage des scores de précision et de rappel
+    classifiers_names = list(classifiers.keys())
+    accuracy_scores = [classifiers[classifier]['Accuracy'] for classifier in classifiers_names]
+    precision_scores = [classifiers[classifier]['Precision'] for classifier in classifiers_names]
+    recall_scores = [classifiers[classifier]['Recall'] for classifier in classifiers_names]
+    f1_scores = [classifiers[classifier]['F1_score'] for classifier in classifiers_names]
+
+    barWidth = 0.2
+
+    # Position des barres pour les différents scores
+    r1 = np.arange(len(classifiers_names))
+    r2 = [x + barWidth for x in r1]
+    r3 = [x + 2*barWidth for x in r1]
+    r4 = [x + 3*barWidth for x in r1]
+
+    # Création du graphique avec les barres côte à côte pour chaque métrique
+    plt.figure(figsize=(12, 6))
+    plt.bar(r1, accuracy_scores, color='y', width=barWidth, edgecolor='grey', label='Accuracy')
+    plt.bar(r2, precision_scores, color='b', width=barWidth, edgecolor='grey', label='Precision')
+    plt.bar(r3, recall_scores, color='g', width=barWidth, edgecolor='grey', label='Recall')
+    plt.bar(r4, f1_scores, color='r', width=barWidth, edgecolor='grey', label='F1 Score')
+
+    # Ajout des étiquettes au-dessus des barres
+    for i, value in enumerate(r1):
+        plt.text(value, accuracy_scores[i]+0.02, str(round(accuracy_scores[i], 2)), ha='center', va='bottom')
+    
+    for i, value in enumerate(r2):
+        plt.text(value, precision_scores[i]+0.02, str(round(precision_scores[i], 2)), ha='center', va='bottom')
+        
+    for i, value in enumerate(r3):
+        plt.text(value, recall_scores[i]+0.02, str(round(recall_scores[i], 2)), ha='center', va='bottom')
+        
+    for i, value in enumerate(r4):
+        plt.text(value, f1_scores[i]+0.02, str(round(f1_scores[i], 2)), ha='center', va='bottom')
+
+    # Configuration du graphique
+    plt.xlabel('Classifieurs')
+    plt.ylabel('Scores')
+    plt.title('Scores d Accuracy, Precision, Recall et F1 des Classifieurs')
+    plt.xticks([r + 1.5*barWidth for r in range(len(classifiers_names))], classifiers_names)
+    plt.legend()
+
+    plt.ylim(0, 1)
+
+    # Affichage du graphique
+    plt.show()
+
+def main(colonnes: list):
+    # columns_to_normalize = df_modifie.columns.difference(['age', 'filepath'])
+
+    # # Créer un objet StandardScaler
+    # scaler = StandardScaler()
+
+    # # Normaliser les données
+    # df_modifie[columns_to_normalize] = scaler.fit_transform(df_modifie[columns_to_normalize])
+
+    X = df_modifie[colonnes]
+    Y = df_modifie['age']
+    # Y = df_modifie['seuil_age']
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+    # X_train, X_test, Y_train, Y_test = split_train_test_by_age(X, Y, test_size=0.2, random_state=42)
+
+    # max_x_n_estimators, max_x_learning_rate = best_n_estimators()
+    # print(max_x_n_estimators, max_x_learning_rate)
+
+    classifiers = {
+        'Regression Logistique': regression_logistique(0, X_train, X_test, Y_train, Y_test),
+        'Support Vector Machines': support_vector_machines(0, X_train, X_test, Y_train, Y_test),
+        'Discriminant Analysis': discriminant_analysis(0, X_train, X_test, Y_train, Y_test),
+        'Random Forests': random_forests(0, X_train, X_test, Y_train, Y_test),
+        'Gradient Boosting Machines': gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test)
+    }
+
+    # tracer l'overfitting des modèles sur un graphique en barres
+    classifiers_names = list(classifiers.keys())
+    overfitting_scores = [classifiers[classifier]['Overfitting'] for classifier in classifiers_names]
+
+    barWidth = 0.2
+
+    # Position des barres pour les différents scores
+    r1 = np.arange(len(classifiers_names))
+
+    # Création du graphique avec les barres côte à côte pour chaque métrique
+    plt.figure(figsize=(12, 6))
+
+    # créer une ligne à 0.7 et 0.9 pour montrer les limites acceptables et remplir l'intervalle de vert clair
+    # plt.axhline(y=0.7, color='g', linestyle='--')
+    # plt.axhline(y=0.9, color='g', linestyle='--')
+    # plt.fill_between(r1, 0.7, 0.9, color='g', alpha=0.1)
+
+    plt.bar(r1, overfitting_scores, color='b', width=barWidth, edgecolor='grey', label='Overfitting')
+
+    # Ajout des étiquettes au-dessus des barres
+    for i, value in enumerate(r1):
+        plt.text(value, overfitting_scores[i]+0.02, str(round(overfitting_scores[i], 2)), ha='center', va='bottom')
+
+    # Configuration du graphique
+    plt.xlabel('Classifieurs')
+    plt.ylabel('Scores')
+    plt.title('Scores d Overfitting des Classifieurs')
+    
+    plt.xticks([r for r in range(len(classifiers_names))], classifiers_names)
+
+    
+
+    plt.legend()
+    plt.ylim(0, 1)
+    plt.show()
+
 if __name__ == "__main__":
-    colonnes = ['growth', 'taille', 'masse', 'densite', 'relative_opacity', 'opacity', 'surface', 'diametre', 'min_diametre', 'max_diametre', 'elongation', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
+    colonnes = ['growth', 'densite', 'relative_opacity', 'opacity', 'surface', 'diametre', 'min_diametre', 'max_diametre', 'elongation', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
 
     # meilleur_sous_ensemble_tout_classifieur(colonnes)
-    # liste_para()
-    main()
+    liste_para(colonnes)
+    # main(colonnes)
+    # meilleures_donnees(colonnes, [])
     # boxplot_all_columns(colonnes)
     # meilleure_combinaison()
     # test_GBM_learning_rate()
