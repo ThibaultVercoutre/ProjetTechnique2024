@@ -3,7 +3,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import LogisticRegression
 from sklearn.svm import SVC
-from sklearn.discriminant_analysis import LinearDiscriminantAnalysis
+from sklearn.discriminant_analysis import LinearDiscriminantAnalysis, StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.metrics import accuracy_score, r2_score
@@ -41,60 +41,60 @@ df_modifie = get_dataframe()
 def regression_logistique(tolerence, X_train, X_test, Y_train, Y_test):
     model = LogisticRegression(max_iter=10000)
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
+    prediction_test = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    accuracy = accuracy_score(Y_test, prediction_test)
+    accuracy_test_with_tolerance = sum(abs(Y_test - prediction_test) <= tolerence) / len(Y_test)
+    accuracy_train_with_tolerance = sum(abs(Y_train - prediction_train) <= tolerence) / len(Y_train)
     # print(f"Précision du modèle Regressions Logistique : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    return accuracy_test_with_tolerance, accuracy_train_with_tolerance
 
 def support_vector_machines(tolerence, X_train, X_test, Y_train, Y_test):
     model = SVC()
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
+    prediction_test = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    accuracy = accuracy_score(Y_test, prediction_test)
+    accuracy_test_with_tolerance = sum(abs(Y_test - prediction_test) <= tolerence) / len(Y_test)
+    accuracy_train_with_tolerance = sum(abs(Y_train - prediction_train) <= tolerence) / len(Y_train)
 
     # print(f"Précision du modèle Support Vector Machines : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    return accuracy_test_with_tolerance, accuracy_train_with_tolerance
 
 def discriminant_analysis(tolerence, X_train, X_test, Y_train, Y_test):
     model = LinearDiscriminantAnalysis()
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
+    prediction_test = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    accuracy = accuracy_score(Y_test, prediction_test)
+    accuracy_test_with_tolerance = sum(abs(Y_test - prediction_test) <= tolerence) / len(Y_test)
+    accuracy_train_with_tolerance = sum(abs(Y_train - prediction_train) <= tolerence) / len(Y_train)
 
     # print(f"Précision du modèle Discriminant Analysis : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    return accuracy_test_with_tolerance, accuracy_train_with_tolerance
 
 def random_forests(tolerence, X_train, X_test, Y_train, Y_test):
     model = RandomForestClassifier()
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
+    prediction_test = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    accuracy = accuracy_score(Y_test, prediction_test)
+    accuracy_test_with_tolerance = sum(abs(Y_test - prediction_test) <= tolerence) / len(Y_test)
+    accuracy_train_with_tolerance = sum(abs(Y_train - prediction_train) <= tolerence) / len(Y_train)
 
     # print(f"Précision du modèle Random Forests : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    return accuracy_test_with_tolerance, accuracy_train_with_tolerance
 
-def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, choix_n_estimators, choix_learning_rate):
-    model = GradientBoostingClassifier(n_estimators=choix_n_estimators, learning_rate=choix_learning_rate, random_state=42)
+def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test):
+    model = GradientBoostingClassifier()
     model.fit(X_train, Y_train)
-    prediction1 = model.predict(X_test)
-    prediction2 = model.predict(X_train)
-    accuracy = accuracy_score(Y_test, prediction1)
-    accuracy1_with_tolerance = sum(abs(Y_test - prediction1) <= tolerence) / len(Y_test)
-    accuracy2_with_tolerance = sum(abs(Y_train - prediction2) <= tolerence) / len(Y_train)
+    prediction_test = model.predict(X_test)
+    prediction_train = model.predict(X_train)
+    accuracy = accuracy_score(Y_test, prediction_test)
+    accuracy_test_with_tolerance = sum(abs(Y_test - prediction_test) <= tolerence) / len(Y_test)
+    accuracy_train_with_tolerance = sum(abs(Y_train - prediction_train) <= tolerence) / len(Y_train)
     # print(f"Précision du modèle Gradient Boosting Machines : {round(accuracy_with_tolerance, 2)}")
-    return accuracy1_with_tolerance, accuracy2_with_tolerance
+    return accuracy_test_with_tolerance, accuracy_train_with_tolerance
 
 def afficher_test_GBM(data):
 
@@ -306,14 +306,15 @@ def meilleurs_données(colonnes: list, test: list):
         Y = df_modifie['age']
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
         resultats['Régression logistique'].append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
-        resultats['Support Vector Machines'].append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
-        resultats['Discriminant Analysis'].append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
-        resultats['Random Forests'].append(random_forests(0, X_train, X_test, Y_train, Y_test))
-        resultats['Gradient Boosting Machines'].append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Support Vector Machines'].append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Discriminant Analysis'].append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Random Forests'].append(random_forests(0, X_train, X_test, Y_train, Y_test))
+        # resultats['Gradient Boosting Machines'].append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 100, 0.32))
 
     for key, value in resultats.items():
         # message = f"Meilleur colonne pour {key} : {colonnes[value.index(max(value))]}"
-        resultats_colonnes[colonnes[value.index(max(value))]] = resultats_colonnes.get(colonnes[value.index(max(value))], 0) + 1
+        if value:  # check if the list is not empty
+            resultats_colonnes[colonnes[value.index(max(value))]] = resultats_colonnes.get(colonnes[value.index(max(value))], 0) + 1
         # print(message)
 
     best_column = max(resultats_colonnes, key=resultats_colonnes.get)
@@ -327,9 +328,7 @@ def meilleurs_données(colonnes: list, test: list):
     # print(f"Meilleure colonne globale : {best_column}")
 
 
-def meilleure_combinaison():
-    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
-    
+def meilleure_combinaison(colonnes):
     # trouver toutes les combinaisons possibles de colonnes
     all_combinations = []
     for i in range(7, len(colonnes) + 1):
@@ -358,16 +357,16 @@ def meilleure_combinaison():
         Y = df_modifie['age']
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-        # print("\033[94m" + f"Régression logistique\033[0m")
-        # Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
-        # print("\033[94m" + f"Support Vector Machines\033[0m")
-        # Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
-        # print("\033[94m" + f"Discriminant Analysis\033[0m")
-        # Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
-        # print("\033[94m" + f"Random Forests\033[0m")
-        # Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Régression logistique\033[0m")
+        Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Support Vector Machines\033[0m")
+        Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Discriminant Analysis\033[0m")
+        Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
+        print("\033[94m" + f"Random Forests\033[0m")
+        Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
         print("\033[94m" + f"Gradient Boosting Machines\033[0m")
-        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test))
+        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 100, 0.32))
 
         # print("\033[94m" + f"Régression logistique : {Ylogistique}" + "\033[0m")
         # print("\033[94m" + f"Support Vector Machines : {Ysvm}" + "\033[0m")
@@ -390,11 +389,15 @@ def meilleure_combinaison():
     print(f"Meilleure combinaison pour Gradient Boosting Machines : {all_combinations[max_gradient_index]} d'un taux de {round(Ygradient[max_gradient_index], 2)}")
 
 
-def liste_para():
-    colonnes = ['densite', 'relativeopacity', 'surface', 'diametre', 'max_diametre', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
+def liste_para(colonnes):
     # suite = meilleurs_données(colonnes, [])
+    # suite = ['RC_left', 'densite', 'elongation', 'min_diametre', 'surface', 'max_diametre', 'diametre']
+    
+    suite =  ['max_diametre', 'min_diametre', 'diametre', 'relative_opacity', 'densite', 'opacity', 'nombre_raies', 'elongation']
+    
+    # suite = ['RC_left', 'densite', 'elongation', 'surface', 'max_diametre', 'diametre', 'relative_opacity']
     # suite = ['max_diametre', 'densite', 'diametre', 'RC_top', 'nombre_raies', 'RC_right', 'surface', 'RC_bottom', 'relativeopacity', 'RC_left']
-    suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
+    # suite = ['nombre_raies', 'max_diametre', 'surface', 'diametre', 'relativeopacity', 'RC_top', 'RC_right', 'densite', 'RC_bottom', 'RC_left']
     print(suite)
 
     params = []
@@ -404,19 +407,26 @@ def liste_para():
     Yrandom = []
     Ygradient = []
 
+    columns_to_normalize = df_modifie.columns.difference(['age', 'filepath'])
+    # Créer un objet StandardScaler
+    scaler = StandardScaler()
+
+    # Normaliser les données
+    df_modifie[columns_to_normalize] = scaler.fit_transform(df_modifie[columns_to_normalize])
+
     for _, param in enumerate(suite):
         params.append(param)
         print("\033[92m" + f"Paramètres : {params}" + "\033[0m")
         X = df_modifie[params]
-        # Y = df_modifie['age']
-        Y = df_modifie['seuil_age']
+        Y = df_modifie['age']
+        # Y = df_modifie['seuil_age']
         X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
-        Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test))
-        Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test))
-        Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test))
-        Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test))
-        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 23, 0.32))
+        # Ylogistique.append(regression_logistique(0, X_train, X_test, Y_train, Y_test)[0])
+        # Ysvm.append(support_vector_machines(0, X_train, X_test, Y_train, Y_test)[0])
+        # Ydiscriminant.append(discriminant_analysis(0, X_train, X_test, Y_train, Y_test)[0])
+        # Yrandom.append(random_forests(0, X_train, X_test, Y_train, Y_test)[0])
+        Ygradient.append(gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test)[0])
 
         print("\033[94m" + f"Régression logistique : {Ylogistique}" + "\033[0m")
         print("\033[94m" + f"Support Vector Machines : {Ysvm}" + "\033[0m")
@@ -428,10 +438,10 @@ def liste_para():
     
     x = np.arange(0, len(suite))
 
-    plt.plot(x, Ylogistique, 'o-', label=models[0])
-    plt.plot(x, Ysvm, 'o-', label=models[1])
-    plt.plot(x, Ydiscriminant, 'o-', label=models[2])
-    plt.plot(x, Yrandom, 'o-', label=models[3])
+    # plt.plot(x, Ylogistique, 'o-', label=models[0])
+    # plt.plot(x, Ysvm, 'o-', label=models[1])
+    # plt.plot(x, Ydiscriminant, 'o-', label=models[2])
+    # plt.plot(x, Yrandom, 'o-', label=models[3])
     plt.plot(x, Ygradient, 'o-', label=models[4])
     plt.xlabel('Paramètres')
     plt.xticks(x, suite, rotation='horizontal')
@@ -528,7 +538,7 @@ def boxplot_all_columns(colonnes: list):
 def meilleur_sous_ensemble(modele, X, Y, n_features):
 
     # Créer un objet RFE pour sélectionner les meilleures caractéristiques
-    rfe = RFE(estimator=modele, n_features_to_select=n_features - 1)
+    rfe = RFE(estimator=modele, n_features_to_select=n_features)
     
     # Adapter le RFE au jeu de données
     rfe.fit(X, Y)
@@ -540,38 +550,81 @@ def meilleur_sous_ensemble_tout_classifieur(colonnes):
     X = df_modifie[colonnes]  # Vos données d'entraînement
     Y = df_modifie['age']
 
-    modele_LR = LogisticRegression()
+    modele_LR = LogisticRegression(max_iter=10000)
     modele_SVC = SVC()
     modele_LDA = LinearDiscriminantAnalysis()
     modele_RFC = RandomForestClassifier()
     modele_GBM = GradientBoostingClassifier()
 
-    # Appeler la fonction pour obtenir le meilleur sous-ensemble
-    caracteristiques_selectionnees_LR = meilleur_sous_ensemble(modele_LR, X, Y, n_features=len(colonnes))
-    # meilleur_sous_ensemble_SVC = meilleur_sous_ensemble(modele_SVC, X, Y, n_features=5)
-    caracteristiques_selectionnees_LDA = meilleur_sous_ensemble(modele_LDA, X, Y, n_features=len(colonnes))
-    caracteristiques_selectionnees_RFC = meilleur_sous_ensemble(modele_RFC, X, Y, n_features=len(colonnes))
-    # meilleur_sous_ensemble_GBM = meilleur_sous_ensemble(modele_GBM, X, Y, n_features=5)
+    Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+    meilleur_LR = [meilleur_sous_ensemble(modele_LR, X, Y, n_features=1), regression_logistique(0, Xtrain, Xtest, Ytrain, Ytest)]
+    meilleur_SVC = [meilleur_sous_ensemble(modele_SVC, X, Y, n_features=1), support_vector_machines(0, Xtrain, Xtest, Ytrain, Ytest)]
+    meilleur_LDA = [meilleur_sous_ensemble(modele_LDA, X, Y, n_features=1), discriminant_analysis(0, Xtrain, Xtest, Ytrain, Ytest)]
+    meilleur_RFC = [meilleur_sous_ensemble(modele_RFC, X, Y, n_features=1), random_forests(0, Xtrain, Xtest, Ytrain, Ytest)]
+    meilleur_GBM = [meilleur_sous_ensemble(modele_GBM, X, Y, n_features=1), gradient_boosting_machines(0, Xtrain, Xtest, Ytrain, Ytest, 100, 0.32)]
+
+    for i in range(2, len(colonnes) + 1):
+
+        print(f"Nombre de caractéristiques : {i}")
+
+        # Appeler la fonction pour obtenir le meilleur sous-ensemble
+        caracteristiques_selectionnees_LR = meilleur_sous_ensemble(modele_LR, X, Y, n_features=i)
+        caracteristiques_selectionnees_SVC = meilleur_sous_ensemble(modele_SVC, X, Y, n_features=5)
+        caracteristiques_selectionnees_LDA = meilleur_sous_ensemble(modele_LDA, X, Y, n_features=i)
+        caracteristiques_selectionnees_RFC = meilleur_sous_ensemble(modele_RFC, X, Y, n_features=i)
+        caracteristiques_selectionnees_GBM = meilleur_sous_ensemble(modele_GBM, X, Y, n_features=i)
+
+        X = df_modifie[caracteristiques_selectionnees_LR]
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
+        scores_logistique = regression_logistique(0, Xtrain, Xtest, Ytrain, Ytest)
+
+        X = df_modifie[caracteristiques_selectionnees_SVC]
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
+        scores_SVC = support_vector_machines(0, Xtrain, Xtest, Ytrain, Ytest)
+
+        X = df_modifie[caracteristiques_selectionnees_LDA]
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
+        scores_LDA = discriminant_analysis(0, Xtrain, Xtest, Ytrain, Ytest)
+
+        X = df_modifie[caracteristiques_selectionnees_RFC]
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
+        scores_RFC = random_forests(0, Xtrain, Xtest, Ytrain, Ytest)
+
+        X = df_modifie[caracteristiques_selectionnees_GBM]
+        Xtrain, Xtest, Ytrain, Ytest = train_test_split(X, Y, test_size=0.2, random_state=42)
+        scores_GBM = gradient_boosting_machines(0, Xtrain, Xtest, Ytrain, Ytest, 100, 0.32)
+
+        if scores_logistique > meilleur_LR[1]:
+            meilleur_LR = [caracteristiques_selectionnees_LR, scores_logistique]
+        if scores_SVC > meilleur_SVC[1]:
+            meilleur_SVC = [caracteristiques_selectionnees_SVC, scores_SVC]
+        if scores_LDA > meilleur_LDA[1]:
+            meilleur_LDA = [caracteristiques_selectionnees_LDA, scores_LDA]
+        if scores_RFC > meilleur_RFC[1]:
+            meilleur_RFC = [caracteristiques_selectionnees_RFC, scores_RFC]
+        if scores_GBM > meilleur_GBM[1]:
+            meilleur_GBM = [caracteristiques_selectionnees_GBM, scores_GBM]
 
     print("Les meilleures caractéristiques LR sélectionnées :")
-    print(caracteristiques_selectionnees_LR)
-    # print("Les meilleures caractéristiques SVC sélectionnées :")
-    # print(caracteristiques_selectionnees_SVC)
+    print(meilleur_LR)
+    print("Les meilleures caractéristiques SVC sélectionnées :")
+    print(caracteristiques_selectionnees_SVC)
     print("Les meilleures caractéristiques LDA sélectionnées :")
-    print(caracteristiques_selectionnees_LDA)
+    print(meilleur_LDA)
     print("Les meilleures caractéristiques RFC sélectionnées :")
-    print(caracteristiques_selectionnees_RFC)
-    # print("Les meilleures caractéristiques GBM sélectionnées :")
-    # print(caracteristiques_selectionnees_GBM)
+    print(meilleur_RFC)
+    print("Les meilleures caractéristiques GBM sélectionnées :")
+    print(meilleur_GBM)
 
 if __name__ == "__main__":
     colonnes = ['growth', 'taille', 'masse', 'densite', 'relative_opacity', 'opacity', 'surface', 'diametre', 'min_diametre', 'max_diametre', 'elongation', 'RC_top', 'RC_bottom', 'RC_right', 'RC_left', 'nombre_raies']
 
     # meilleur_sous_ensemble_tout_classifieur(colonnes)
-    # liste_para()
-    main()
+    liste_para(colonnes)
+    # main()
     # boxplot_all_columns(colonnes)
-    # meilleure_combinaison()
+    # meilleure_combinaison(colonnes)
     # test_GBM_learning_rate()
     # afficher_test_GBM_3D()
     # afficher_test_GBM("GBM_n_estimators_variations")
