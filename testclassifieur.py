@@ -155,9 +155,9 @@ def random_forests(tolerence, X_train, X_test, Y_train, Y_test, version):
 
 def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, version, n):
     if version:
-        model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.32, random_state=42, max_depth=5)
+        model = GradientBoostingClassifier(n_estimators=100, learning_rate=0.4, random_state=42, max_depth=5)
     else:
-        model = GradientBoostingClassifier(random_state=n, n_estimators=5)
+        model = GradientBoostingClassifier(learning_rate=n, n_estimators=5)
     model.fit(X_train, Y_train)
     prediction = model.predict(X_test)
     prediction_train = model.predict(X_train)
@@ -690,7 +690,7 @@ def APRF1(colonnes: list):
         'Support Vector Machines': support_vector_machines(0, X_train, X_test, Y_train, Y_test, 1),
         'Discriminant Analysis': discriminant_analysis(0, X_train, X_test, Y_train, Y_test, 1),
         'Random Forests': random_forests(0, X_train, X_test, Y_train, Y_test, 1),
-        'Gradient Boosting Machines': gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 1)
+        'Gradient Boosting Machines': gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 1, 0)
     }
 
     print(classifiers)
@@ -1252,6 +1252,35 @@ def GBM_var_random_state(colonnes):
     plt.legend()
     plt.show()
 
+def GBM_var_learning_rate(colonnes):
+    X = df_modifie[colonnes]
+    Y = df_modifie['age']
+
+    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+
+    # learning_rate de 0.01 à 0.1:
+    learning_rates = [i/100 for i in range(1, 100)]
+
+    # Créer une liste pour stocker les scores
+    scores1 = []
+    scores2 = []
+
+    # Boucle sur les valeurs de composants
+    for rate in learning_rates:
+        print(f"Learning Rate : {rate}")
+        resultat = gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, 0, rate)
+        scores1.append(resultat['Accuracy Test'])
+        scores2.append(resultat['Accuracy Train'])
+
+    # Afficher les scores
+    plt.plot(learning_rates, scores1, label='Test')
+    plt.plot(learning_rates, scores2, label='Train')
+    plt.xlabel('Learning Rate')
+    plt.ylabel('Score')
+    plt.title('Score du Gradient Boosting Machine en fonction du learning rate')
+    plt.legend()
+    plt.show()
+
 def recup_donnees_class(X_train, X_test, Y_train, Y_test, version):
     classifiers = {
         'Regression Logistique': regression_logistique(0, X_train, X_test, Y_train, Y_test, version),
@@ -1361,8 +1390,8 @@ if __name__ == "__main__":
     # liste_para(colonnes)
     # RF_var_max_features(colonnes)
     # RF_var_depth(colonnes)
-    GBM_var_random_state(colonnes)
-    # APRF1(colonnes)
+    # GBM_var_learning_rate(colonnes)
+    APRF1(colonnes)
     # regression_lineaire_var_tol(colonnes)
     # svm_var_kernel(colonnes)
     # main(colonnes)
