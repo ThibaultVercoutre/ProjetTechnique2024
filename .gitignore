@@ -167,3 +167,4 @@ cython_debug/
 
 # journal
 *.db-journal
+*.ini

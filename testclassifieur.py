@@ -1,4 +1,5 @@
 import itertools
+import json
 from sklearn.model_selection import train_test_split
 from sklearn.feature_selection import RFE
 from sklearn.linear_model import LogisticRegression, RidgeClassifierCV, LassoLarsIC
@@ -55,12 +56,12 @@ def split_train_test_by_age(X, Y, test_size=0.2, random_state=42):
 
     return X_train, X_test, Y_train, Y_test
 
-def split_train_test_by_age_2(X, Y, test_size=0.2, random_state=42):
+def split_train_test_by_age_2(X, Y, nb_head = 100, test_size=0.2, random_state=42):
     # Créer un DataFrame avec X et Y
     data = pd.concat([X, Y], axis=1)
 
     # Récupérer 100 poisson par âge
-    data = data.groupby('age').head(100)
+    data = data.groupby('age').head(nb_head)
 
     # Séparer les données par âge
     train_data = pd.DataFrame()
@@ -89,10 +90,10 @@ def split_train_test_by_age_2(X, Y, test_size=0.2, random_state=42):
 
 # fonctions de modèles
 
-total = 12174
+total = 12174 - 21
 
 class_weights = {
-    -1: 21/total,
+    # -1: 21/total,
     0: 174/total,
     1: 1222/total,
     2: 2196/total,
@@ -109,6 +110,49 @@ class_weights = {
     13: 6/total
 }
 
+total = 1072
+
+class_weights = {
+    0: 100/total,
+    1: 100/total,
+    2: 100/total,
+    3: 100/total,
+    4: 100/total,
+    5: 100/total,
+    6: 100/total,
+    7: 100/total,
+    8: 100/total,
+    9: 100/total,
+    10: 39/total,
+    11: 20/total,
+    12: 7/total,
+    13: 6/total
+}
+
+total = 200
+
+class_weights = {
+    0: 100/total,
+    1: 100/total,
+}
+
+def separation_par_classe(Y_test, Y_train, prediction, prediction_train, index):
+    Y_class_isole = [x if x == index else -2 for x in Y_test]
+    Y_class_isole_train = [x if x == index else -2 for x in Y_train]
+
+    # afficher la valeurs moyenne de la classe sans les -2
+    print(f"Valeur moyenne de la classe {index} : {np.mean([x for x in Y_class_isole if x != -2])}")
+
+    metric = {
+        'Accuracy Test': accuracy_score(Y_class_isole, prediction),
+        'Precision': precision_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
+        'Recall': recall_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
+        'F1_score': f1_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
+        'Accuracy Train': accuracy_score(Y_class_isole_train, prediction_train)
+    }
+
+    return metric
+
 def regression_logistique(tolerence, X_train, X_test, Y_train, Y_test, version, separation):
     if version:
         model = LogisticRegression(max_iter=10000, solver='lbfgs', multi_class='ovr', class_weight=class_weights)
@@ -121,17 +165,9 @@ def regression_logistique(tolerence, X_train, X_test, Y_train, Y_test, version, 
         metrics = []
         # trouver les index de class_weights
         for index, (key, value) in enumerate(class_weights.items()):
-            print(f"Classe {index}")
+            print(f"Classe {key}")
             #Mettre dans Y_class_isole les valeurs de Y_test qui sont égales à l'index
-            Y_class_isole = [x if x == index else -2 for x in Y_test]
-            Y_class_isole_train = [x if x == index else -2 for x in Y_train]
-            metrics.append({
-                'Accuracy Test': accuracy_score(Y_class_isole, prediction),
-                'Precision': precision_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Recall': recall_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'F1_score': f1_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Accuracy Train': accuracy_score(Y_class_isole_train, prediction_train)
-            })
+            metrics.append(separation_par_classe(Y_test, Y_train, prediction, prediction_train, key))
     else:
         metrics = {
             'Accuracy Test': accuracy_score(Y_test, prediction),
@@ -140,6 +176,7 @@ def regression_logistique(tolerence, X_train, X_test, Y_train, Y_test, version, 
             'F1_score': f1_score(Y_test, prediction, zero_division=np.nan, average='weighted'),
             'Accuracy Train': accuracy_score(Y_train, prediction_train)
         }
+
     return metrics
 
 def support_vector_machines(tolerence, X_train, X_test, Y_train, Y_test, version, separation):
@@ -157,15 +194,7 @@ def support_vector_machines(tolerence, X_train, X_test, Y_train, Y_test, version
         for index, (key, value) in enumerate(class_weights.items()):
             print(f"Classe {index}")
             #Mettre dans Y_class_isole les valeurs de Y_test qui sont égales à l'index
-            Y_class_isole = [x if x == index else -2 for x in Y_test]
-            Y_class_isole_train = [x if x == index else -2 for x in Y_train]
-            metrics.append({
-                'Accuracy Test': accuracy_score(Y_class_isole, prediction),
-                'Precision': precision_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Recall': recall_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'F1_score': f1_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Accuracy Train': accuracy_score(Y_class_isole_train, prediction_train)
-            })
+            metrics.append(separation_par_classe(Y_test, Y_train, prediction, prediction_train, index))
     else:
         metrics = {
             'Accuracy Test': accuracy_score(Y_test, prediction),
@@ -178,11 +207,14 @@ def support_vector_machines(tolerence, X_train, X_test, Y_train, Y_test, version
 
 def discriminant_analysis(tolerence, X_train, X_test, Y_train, Y_test, version, separation):
     if version:
-        # # ages = df_modifie['age'].value_counts().index
-        # nb_elements = df_modifie['age'].value_counts().values
-        # total = sum(nb_elements)
-        # priors = [x/total for x in [21, 174, 1222, 2196, 2822, 2451, 1537, 879, 470, 226, 104, 39, 20, 7, 6]]
-        model = LinearDiscriminantAnalysis()#priors=priors)
+        # ages = df_modifie['age'].value_counts().index
+        nb_elements = df_modifie['age'].value_counts().values
+        total = sum(nb_elements)
+        # priors = [x/total for x in [174, 1222, 2196, 2822, 2451, 1537, 879, 470, 226, 104, 39, 20, 7, 6]]
+        
+        # priors = [x/total for x in [100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 39, 20, 7, 6]]
+        priors = [x/total for x in [100, 100]]
+        model = LinearDiscriminantAnalysis(priors=priors)
     else:
         model = LinearDiscriminantAnalysis()
 
@@ -196,15 +228,7 @@ def discriminant_analysis(tolerence, X_train, X_test, Y_train, Y_test, version, 
         for index, (key, value) in enumerate(class_weights.items()):
             print(f"Classe {index}")
             #Mettre dans Y_class_isole les valeurs de Y_test qui sont égales à l'index
-            Y_class_isole = [x if x == index else -2 for x in Y_test]
-            Y_class_isole_train = [x if x == index else -2 for x in Y_train]
-            metrics.append({
-                'Accuracy Test': accuracy_score(Y_class_isole, prediction),
-                'Precision': precision_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Recall': recall_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'F1_score': f1_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Accuracy Train': accuracy_score(Y_class_isole_train, prediction_train)
-            })
+            metrics.append(separation_par_classe(Y_test, Y_train, prediction, prediction_train, index))
     else:
         metrics = {
             'Accuracy Test': accuracy_score(Y_test, prediction),
@@ -217,6 +241,7 @@ def discriminant_analysis(tolerence, X_train, X_test, Y_train, Y_test, version, 
 
 def random_forests(tolerence, X_train, X_test, Y_train, Y_test, version, separation):
     if version:
+        #
         model = RandomForestClassifier(random_state=42, n_estimators=20, max_depth=13, min_samples_split=6, min_samples_leaf=6, max_features=10)
     else:
         model = RandomForestClassifier()
@@ -229,15 +254,7 @@ def random_forests(tolerence, X_train, X_test, Y_train, Y_test, version, separat
         for index, (key, value) in enumerate(class_weights.items()):
             print(f"Classe {index}")
             #Mettre dans Y_class_isole les valeurs de Y_test qui sont égales à l'index
-            Y_class_isole = [x if x == index else -2 for x in Y_test]
-            Y_class_isole_train = [x if x == index else -2 for x in Y_train]
-            metrics.append({
-                'Accuracy Test': accuracy_score(Y_class_isole, prediction),
-                'Precision': precision_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Recall': recall_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'F1_score': f1_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Accuracy Train': accuracy_score(Y_class_isole_train, prediction_train)
-            })
+            metrics.append(separation_par_classe(Y_test, Y_train, prediction, prediction_train, index))
     else:
         metrics = {
             'Accuracy Test': accuracy_score(Y_test, prediction),
@@ -262,15 +279,7 @@ def gradient_boosting_machines(tolerence, X_train, X_test, Y_train, Y_test, vers
         for index, (key, value) in enumerate(class_weights.items()):
             print(f"Classe {index}")
             #Mettre dans Y_class_isole les valeurs de Y_test qui sont égales à l'index
-            Y_class_isole = [x if x == index else -2 for x in Y_test]
-            Y_class_isole_train = [x if x == index else -2 for x in Y_train]
-            metrics.append({
-                'Accuracy Test': accuracy_score(Y_class_isole, prediction),
-                'Precision': precision_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Recall': recall_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'F1_score': f1_score(Y_class_isole, prediction, zero_division=np.nan, average='weighted'),
-                'Accuracy Train': accuracy_score(Y_class_isole_train, prediction_train)
-            })
+            metrics.append(separation_par_classe(Y_test, Y_train, prediction, prediction_train, index))
     else:
         metrics = {
             'Accuracy Test': accuracy_score(Y_test, prediction),
@@ -786,18 +795,17 @@ def APRF1(colonnes: list):
     # Normaliser les données
     df_modifie[columns_to_normalize] = scaler.fit_transform(df_modifie[columns_to_normalize])
 
-    X = df_modifie[colonnes]
-    Y = df_modifie['age']
-
-    print(Y)
-
+    # enlever les lignes ou age = -1
+    df_modifie_2 = df_modifie[df_modifie['age'] != -1]
+    
+    X = df_modifie_2[colonnes]
+    Y = df_modifie_2['age']
+    
     Y = (Y > 4).astype(float)
 
-    print(Y)
+    X_train, X_test, Y_train, Y_test = split_train_test_by_age_2(X, Y, test_size=0.2, random_state=42, nb_head=1000)
 
-    
-
-    X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
+    # X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
     # X_train, X_test, Y_train, Y_test = split_train_test_by_age(X, Y, test_size=0.2, random_state=42)
 
     # max_x_n_estimators, max_x_learning_rate = best_n_estimators()
@@ -864,7 +872,7 @@ def APRF1(colonnes: list):
     plt.xticks([r + 1.5*barWidth for r in range(len(classifiers_names))], classifiers_names)
     plt.legend()
 
-    # plt.ylim(0, 1)
+    plt.ylim(0, 1.5)
 
     # Affichage du graphique
     plt.show()
@@ -1505,10 +1513,31 @@ def comparaison_avant_apres(colonnes):
     plt.show()
 
 def reconnaissance_par_class_par_classifieur(colonnes):
-    X = df_modifie[colonnes]
-    Y = df_modifie['age']
 
-    X_train, X_test, Y_train, Y_test = split_train_test_by_age_2(X, Y, test_size=0.2, random_state=42) #train_test_split(X, Y, test_size=0.2, random_state=42)
+    columns_to_normalize = df_modifie.columns.difference(['age', 'filepath'])
+
+    # Créer un objet StandardScaler
+    scaler = StandardScaler()
+
+    # Normaliser les données
+    df_modifie[columns_to_normalize] = scaler.fit_transform(df_modifie[columns_to_normalize])
+
+    # enlever les lignes ou age = -1
+    df_modifie_2 = df_modifie[df_modifie['age'] != -1]
+    
+    X = df_modifie_2[colonnes]
+    Y = df_modifie_2['age']
+
+    Y = (Y > 4).astype(float)
+
+    print(Y)
+
+    X_train, X_test, Y_train, Y_test = split_train_test_by_age_2(X, Y, test_size=0.2, random_state=42, nb_head=1000) #
+
+    # afficher les shapes des données
+    print(X_train.shape, X_test.shape, Y_train.shape, Y_test.shape)     
+
+    # X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
     version = 1
     separation = 'class'
@@ -1518,13 +1547,24 @@ def reconnaissance_par_class_par_classifieur(colonnes):
         'Support Vector Machines': support_vector_machines(0, X_train, X_test, Y_train, Y_test, version, separation),
         'Discriminant Analysis': discriminant_analysis(0, X_train, X_test, Y_train, Y_test, version, separation),
         'Random Forests': random_forests(0, X_train, X_test, Y_train, Y_test, version, separation),
-        'Gradient Boosting Machines': gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, version, separation, 0)
+        'Gradient Boosting Machines': gradient_boosting_machines(0, X_train, X_test, Y_train, Y_test, version, separation)
     }
 
-    print(resultats)
+    # max_index = max(metrics, key=lambda x: x['Accuracy Test'])
+    
+    # print(f"Classe la plus précise : {metrics.index(max_index)}")
+
+
+    # récupérer la classe avec le meilleur score de précision pour chaque classifieur
+    # best_class = {}
+    # for clf in resultats.keys():
+    #     best_class[clf] = resultats[clf].index(max(resultats[clf], key=lambda x: x['Precision']))
+    
+    # print(best_class)
 
     # Classes pour les barres des métriques
-    classes = ['-1', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13']
+    # classes = ['0', '1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13']
+    classes = ['0', '1']
 
     # Métriques à afficher
     metriques = ['Accuracy Test', 'Precision', 'Recall', 'F1_score', 'Accuracy Train']
@@ -1539,13 +1579,17 @@ def reconnaissance_par_class_par_classifieur(colonnes):
     for i in range(5):  # Pour chaque métrique
         plt.figure(figsize=(12, 6))
         for j in range(len(metriques)):
-            print(f'classifieur {keys[i]} avec caractéristique {classes[i]}')
+            # print(f'classifieur {keys[i]} avec caractéristique {classes[i]}')
             # récupérer la liste d'accury pour le classifieur keys[i]
             data = [resultats[keys[i]][k][metriques[j]] for k in range(len(resultats[keys[i]]))]
 
-            print(data)
+            # print(data)
 
             plt.bar([x + j*0.15 for x in range(len(classes))], data, width=0.15, label=metriques[j])
+
+            # afficher les étiquettes au-dessus de la barre qu'on vient de créer
+            for k, value in enumerate(data):
+                plt.text(k + j*0.15, value+0.02, str(round(value, 2)), ha='center', va='bottom')
 
         plt.xlabel('Classes')
         plt.ylabel('Scores')

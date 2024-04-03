@@ -8,9 +8,15 @@ from scipy.interpolate import UnivariateSpline
 from scipy.optimize import minimize
 import matplotlib.pyplot as plt
 import math as m
+import configparser
+
+# Lire le fichier de configuration
+config = configparser.ConfigParser()
+config.read('config.ini')
 
 db = sqlite3.connect('data.db')
-plaice_dir_path = "F:\Téléchargements\96695\data_image_otolith_ple_mur\plaice"
+# Obtenir la valeur de plaice_dir_path à partir du fichier de configuration
+plaice_dir_path = config['Paths']['plaice_dir_path']
 df = pd.read_csv(plaice_dir_path + '\\metadata_plaice_2010-2019.csv', sep=';')
 
 def get_echelle(name):
