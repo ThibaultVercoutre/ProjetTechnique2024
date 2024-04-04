@@ -239,12 +239,12 @@ def discriminant_analysis(tolerence, X_train, X_test, Y_train, Y_test, version, 
         }
     return metrics
 
-def random_forests(tolerence, X_train, X_test, Y_train, Y_test, version, separation):
+def random_forests(tolerence, X_train, X_test, Y_train, Y_test, version, separation, depth):
     if version:
         #
         model = RandomForestClassifier(random_state=42, n_estimators=20, max_depth=13, min_samples_split=6, min_samples_leaf=6, max_features=10)
     else:
-        model = RandomForestClassifier()
+        model = RandomForestClassifier(max_depth=depth, n_estimators=20)
     model.fit(X_train, Y_train)
     prediction = model.predict(X_test)
     prediction_train = model.predict(X_train)
@@ -1116,7 +1116,7 @@ def RF_var_depth(colonnes):
     X_train, X_test, Y_train, Y_test = train_test_split(X, Y, test_size=0.2, random_state=42)
 
     # Profondeur de 1 à 14:
-    max_depth = [i for i in range(1, 15)]
+    max_depth = [i for i in range(1, 50)]
 
     # Créer une liste pour stocker les scores
     scores1 = []
@@ -1125,7 +1125,7 @@ def RF_var_depth(colonnes):
     # Boucle sur les valeurs de composants
     for depth in max_depth:
         print(f"Profondeur : {depth}")
-        resultat = random_forests(0, X_train, X_test, Y_train, Y_test, 0, depth)
+        resultat = random_forests(0, X_train, X_test, Y_train, Y_test, 0, '', depth)
         scores1.append(resultat['Accuracy Test'])
         scores2.append(resultat['Accuracy Train'])
 
@@ -1628,7 +1628,8 @@ if __name__ == "__main__":
     # GBM_var_learning_rate(colonnes)
     # reconnaissance_par_class_par_classifieur(colonnes)
     # afficher_nb_element_bdd_par_age()
-    APRF1(colonnes)
+    # APRF1(colonnes)
+    RF_var_depth(colonnes)
     # regression_lineaire_var_tol(colonnes)
     # svm_var_kernel(colonnes)
     # main(colonnes)
